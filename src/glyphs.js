@@ -32,13 +32,77 @@
       'l': [[[50, 15], [50, 80]]],
       'n': [[[34, 44], [34, 80]], arc(50, 60, 16, 180, 360).concat([[66, 80]])],
       'o': [arc(50, 62, 18, -90, -450)],
+      'f': [arc(56, 30, 10, -30, -180).concat([[46, 80]]), [[36, 46], [62, 46]]],
+      'g': [arc(48, 60, 16, -20, -380), [[64, 44], [64, 84]].concat(arc(52, 84, 12, 0, 140))],
+      'j': [[[56, 46], [56, 86]].concat(arc(46, 86, 10, 0, 150)), [[56, 28], [56, 32]]],
+      'k': [[[32, 15], [32, 80]], [[66, 44], [32, 64]], [[44, 57], [68, 80]]],
+      'm': [[[26, 44], [26, 80]], arc(37, 56, 11, 180, 360).concat([[48, 80]]), arc(59, 56, 11, 180, 360).concat([[70, 80]])],
+      'p': [[[32, 44], [32, 95]], arc(50, 62, 18, 180, 540)],
+      'q': [arc(50, 62, 18, 0, -360), [[68, 44], [68, 95]]],
+      'r': [[[36, 44], [36, 80]], arc(52, 58, 16, 180, 300)],
+      's': [arc(50, 53, 10, -20, -270).concat(arc(50, 72, 9, -90, 160))],
+      't': [[[48, 24]].concat(arc(56, 72, 8, 180, 90)), [[36, 44], [62, 44]]],
+      'u': [[[34, 44]].concat(arc(50, 64, 16, 180, 0), [[66, 44]]), [[66, 44], [66, 80]]],
+      'v': [[[30, 44], [50, 80], [70, 44]]],
+      'w': [[[22, 44], [34, 80], [50, 52], [66, 80], [78, 44]]],
+      'x': [[[32, 44], [68, 80]], [[68, 44], [32, 80]]],
+      'y': [[[32, 44], [50, 80]], [[68, 44], [40, 96]]],
+      'z': [[[32, 44], [68, 44], [32, 80], [68, 80]]],
     },
   };
-  // 단계별 글자 묶음 (낱자 단계). 단어·문장·문단 단계는 추후
-  const POOLS = {
-    ko: ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ'],
-    en: ['a', 'b', 'c', 'd', 'e', 'h', 'i', 'l', 'n', 'o'],
+  // 한글 모음: 자리(가로 모음은 자음 오른쪽 / 세로 모음은 자음 아래)와 획. 자음은 rect 안으로 줄여 넣음
+  const VOWELS = {
+    'ㅏ': { rect: [8, 18, 60, 82], s: [[[72, 12], [72, 88]], [[72, 48], [88, 48]]] },
+    'ㅓ': { rect: [6, 18, 54, 82], s: [[[58, 48], [74, 48]], [[74, 12], [74, 88]]] },
+    'ㅣ': { rect: [8, 18, 60, 82], s: [[[74, 12], [74, 88]]] },
+    'ㅗ': { rect: [20, 8, 80, 52], s: [[[50, 58], [50, 74]], [[14, 76], [86, 76]]] },
+    'ㅜ': { rect: [20, 6, 80, 48], s: [[[14, 62], [86, 62]], [[50, 62], [50, 86]]] },
+    'ㅡ': { rect: [20, 10, 80, 56], s: [[[14, 72], [86, 72]]] },
   };
-  const TUTORIAL = { ko: 'ㄱ', en: 'A' };
-  window.PC = Object.assign(window.PC || {}, { GLYPHS, POOLS, TUTORIAL });
+  const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈ', JUNG = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
+  const syllable = (c, v) => String.fromCharCode(0xac00 + (CHO.indexOf(c) * 21 + JUNG.indexOf(v)) * 28);
+  function buildSyllable(ch) {
+    const n = ch.charCodeAt(0) - 0xac00, c = CHO[Math.floor(n / 588)], v = VOWELS[JUNG[Math.floor((n % 588) / 28)]];
+    const [x0, y0, x1, y1] = v.rect, fit = ([x, y]) => [x0 + ((x - 15) / 70) * (x1 - x0), y0 + ((y - 15) / 70) * (y1 - y0)];
+    return GLYPHS.ko[c].map(st => st.map(fit)).concat(v.s);
+  }
+  // 영어 단어: 낱자를 가로로 늘어놓고 종이에 맞게 줄임
+  function buildWord(w) {
+    const parts = [...w].map(ch => {
+      const g = GLYPHS.en[ch], xs = g.flat().map(p => p[0]);
+      return { g, x0: Math.min(...xs), w: Math.max(...xs) - Math.min(...xs) };
+    });
+    const GAP = 12, W = parts.reduce((a, p) => a + p.w, 0) + GAP * (parts.length - 1), k = Math.min(0.8, 82 / W);
+    let x = 50 - (W * k) / 2;
+    const oy = 50 - 55 * k, tpl = [];
+    for (const p of parts) {
+      for (const st of p.g) tpl.push(st.map(([px, py]) => [x + (px - p.x0) * k, oy + py * k]));
+      x += (p.w + GAP) * k;
+    }
+    return { tpl, k };
+  }
+  // 종이 한 장의 글자: 낱자 / 한글 음절 / 영어 단어 → { tpl, k(크기 비율: 선 굵기·허용 거리에 씀) }
+  function build(lang, key) {
+    if (GLYPHS[lang][key]) return { tpl: GLYPHS[lang][key], k: 1 };
+    if (lang === 'ko') return { tpl: buildSyllable(key), k: 1 };
+    return buildWord(key);
+  }
+
+  // 단계별 묶음 (tier). 낱자 → 쉬운 단어 1 (영어 짧은 단어 / 한글 자모를 합친 한 글자). 이후 단계는 추후
+  const KO_CONS = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ'];
+  const POOLS = {
+    letter: {
+      ko: KO_CONS,
+      en: ['a', 'b', 'c', 'd', 'e', 'h', 'i', 'l', 'n', 'o'],
+    },
+    word1: {
+      ko: KO_CONS.flatMap(c => Object.keys(VOWELS).map(v => syllable(c, v))),
+      en: ['sky', 'eat', 'cat', 'dog', 'sun', 'cup', 'hat', 'pen', 'red', 'box', 'map', 'bed', 'egg', 'fox', 'ink', 'jam', 'key', 'owl', 'run', 'top', 'van', 'web', 'yes', 'zip', 'big'],
+    },
+  };
+  const pick = (tier = 'letter') => {
+    const P = POOLS[tier], all = [...P.ko.map(k => ['ko', k]), ...P.en.map(k => ['en', k])];
+    return all[Math.floor(Math.random() * all.length)];
+  };
+  window.PC = Object.assign(window.PC || {}, { GLYPHS, POOLS, build, pick });
 })();

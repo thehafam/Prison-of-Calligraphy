@@ -1,12 +1,13 @@
 // 게임 흐름: 타이틀 → 튜토리얼(src/tutorial.js) → 단계(제한시간 안에 90점 이상 종이를 할당량만큼) → 결과
 (function () {
-  const { t, GLYPHS, POOLS } = PC;
+  const { t } = PC;
   const $ = id => document.getElementById(id);
 
   // 필기구: 파손 확률 7%p씩 감소(마지막은 0%), 가격 3배씩
   const PENCILS = [0.40, 0.33, 0.26, 0.19, 0.12, 0].map((p, i) => ({ p, price: 10 * 3 ** i }));
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
-  const STAGES = [{ time: 30, quota: 4 }, { time: 30, quota: 5 }, { time: 30, quota: 6 }];
+  // tier: letter 낱자 / word1 쉬운 단어(영어 짧은 단어·한글 한 글자). 단어 단계 시간·장수는 [임시]
+  const STAGES = [{ time: 30, quota: 4, tier: 'letter' }, { time: 30, quota: 5, tier: 'letter' }, { time: 40, quota: 4, tier: 'word1' }, { time: 40, quota: 5, tier: 'word1' }];
   const PASS = 90;
   const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
@@ -37,49 +38,48 @@
     if (!sheet) return;
     ctx.lineCap = ctx.lineJoin = 'round';
     // 따라 쓸 글씨 (회색)
-    ctx.strokeStyle = '#c4bcae'; ctx.lineWidth = 8;
+    const g = sheet.g;
+    ctx.strokeStyle = '#c4bcae'; ctx.lineWidth = 8 * g;
     for (const s of sheet.tpl) poly(s);
     // 획 순서 화살표·번호
     const labels = [];
-    sheet.tpl.forEach((s, i) => arrow(s, i + 1, labels));
+    sheet.tpl.forEach((s, i) => arrow(s, i + 1, labels, g));
     // 플레이어 글씨
-    ctx.strokeStyle = '#26221d'; ctx.lineWidth = 3.4;
+    ctx.strokeStyle = '#26221d'; ctx.lineWidth = 3.4 * g;
     for (const s of sheet.strokes) {
-      if (s.length === 1) { ctx.fillStyle = '#26221d'; ctx.beginPath(); ctx.arc(s[0][0], s[0][1], 1.7, 0, 7); ctx.fill(); }
+      if (s.length === 1) { ctx.fillStyle = '#26221d'; ctx.beginPath(); ctx.arc(s[0][0], s[0][1], 1.7 * g, 0, 7); ctx.fill(); }
       else poly(s);
     }
   }
   function poly(s) { ctx.beginPath(); s.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.stroke(); }
-  function arrow(s, n, labels) {
-    ctx.strokeStyle = '#b8352b'; ctx.lineWidth = 0.7; poly(s);
+  function arrow(s, n, labels, g) {
+    ctx.strokeStyle = '#b8352b'; ctx.lineWidth = 0.7 * g; poly(s);
     const a = s[s.length - 2], b = s[s.length - 1], ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
     ctx.fillStyle = '#b8352b'; ctx.beginPath();
-    ctx.moveTo(b[0] + Math.cos(ang) * 2.5, b[1] + Math.sin(ang) * 2.5);
-    ctx.lineTo(b[0] + Math.cos(ang + 2.5) * 3, b[1] + Math.sin(ang + 2.5) * 3);
-    ctx.lineTo(b[0] + Math.cos(ang - 2.5) * 3, b[1] + Math.sin(ang - 2.5) * 3);
+    ctx.moveTo(b[0] + Math.cos(ang) * 2.5 * g, b[1] + Math.sin(ang) * 2.5 * g);
+    ctx.lineTo(b[0] + Math.cos(ang + 2.5) * 3 * g, b[1] + Math.sin(ang + 2.5) * 3 * g);
+    ctx.lineTo(b[0] + Math.cos(ang - 2.5) * 3 * g, b[1] + Math.sin(ang - 2.5) * 3 * g);
     ctx.fill();
     // 번호: 시작점 뒤쪽·옆쪽 중 다른 번호와 겹치지 않는 자리
     const [x, y] = s[0], q = s[Math.min(3, s.length - 1)], L = Math.hypot(q[0] - x, q[1] - y) || 1;
     const ux = (q[0] - x) / L, uy = (q[1] - y) / L;
-    const cand = [[-ux, -uy], [-uy, ux], [uy, -ux], [-ux - uy, -uy + ux], [-ux + uy, -uy - ux]].map(([a, b]) => [x + a * 6, y + b * 6]);
-    const [lx, ly] = cand.find(c => labels.every(l => Math.hypot(l[0] - c[0], l[1] - c[1]) > 6.5)) || cand[0];
+    const cand = [[-ux, -uy], [-uy, ux], [uy, -ux], [-ux - uy, -uy + ux], [-ux + uy, -uy - ux], [ux - uy, uy + ux], [ux + uy, uy - ux]].map(([a, b]) => [x + a * 6 * g, y + b * 6 * g]);
+    const inside = c => c[0] > 5 && c[0] < 95 && c[1] > 5 && c[1] < 95; // 종이 밖으로 나가지 않게
+    const [lx, ly] = cand.find(c => inside(c) && labels.every(l => Math.hypot(l[0] - c[0], l[1] - c[1]) > 6.5 * g)) || cand.find(inside) || cand[0];
     labels.push([lx, ly]);
     const dx = lx - x, dy = ly - y;
-    ctx.beginPath(); ctx.arc(x + dx, y + dy, 3, 0, 7); ctx.fillStyle = '#f1e7cf'; ctx.fill();
-    ctx.strokeStyle = '#b8352b'; ctx.lineWidth = 0.5; ctx.stroke();
-    ctx.fillStyle = '#b8352b'; ctx.font = 'bold 4px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.beginPath(); ctx.arc(x + dx, y + dy, 3 * g, 0, 7); ctx.fillStyle = '#f1e7cf'; ctx.fill();
+    ctx.strokeStyle = '#b8352b'; ctx.lineWidth = 0.5 * g; ctx.stroke();
+    ctx.fillStyle = '#b8352b'; ctx.font = `bold ${4 * g}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(n, x + dx, y + dy + 0.2);
   }
 
   // ---------- 종이 한 장: 글자는 게임 언어와 상관없이 한글·영어가 섞여 나옴 ----------
   function newSheet(opt = {}) {
     let { lang, key } = opt;
-    if (!key) {
-      const pool = opt.pool || [...POOLS.ko.map(k => ['ko', k]), ...POOLS.en.map(k => ['en', k])];
-      [lang, key] = pool[Math.floor(Math.random() * pool.length)];
-    }
-    const tpl = GLYPHS[lang][key];
-    sheet = { lang, key, tpl, strokes: [], ink: 0, breakAt: Infinity };
+    if (!key) [lang, key] = opt.pool ? opt.pool[Math.floor(Math.random() * opt.pool.length)] : PC.pick(opt.tier || stageDef().tier);
+    const { tpl, k } = PC.build(lang, key), g = Math.min(1, Math.max(0.7, k)); // g: 작은 글자일수록 선·번호·허용 거리를 줄임
+    sheet = { lang, key, tpl, g, strokes: [], ink: 0, breakAt: Infinity };
     // 파손: 장마다 연필 등급 확률로, 쓰는 도중 아무 순간에 (튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
     if (opt.breakAt) sheet.breakAt = len * opt.breakAt;
@@ -181,7 +181,7 @@
   }
   function toStack() {
     const r = $('paperWrap').getBoundingClientRect(), i = S.stack.length;
-    S.stack.push({ tpl: sheet.tpl, strokes: sheet.strokes });
+    S.stack.push({ tpl: sheet.tpl, strokes: sheet.strokes, g: sheet.g });
     const img = new Image(); img.src = cv.toDataURL('image/jpeg', 0.7); img.className = 'sheet-mini';
     img.style.width = r.width + 'px'; img.style.height = r.height + 'px';
     img.style.transform = `translate(${r.left}px,${r.top}px)`;
@@ -203,7 +203,7 @@
   }
   // 정산: 더미의 종이를 채점해 90점 이상마다 1냥
   function settle() {
-    const scores = S.stack.map(x => PC.score(x.tpl, x.strokes));
+    const scores = S.stack.map(x => PC.score(x.tpl, x.strokes, 7 * x.g));
     S.passed = scores.filter(v => v >= PASS).length; S.earned = S.passed; S.money += S.passed;
     $('resultScores').innerHTML = scores.map(v => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}</span>`).join('');
     S.stack = []; $('stack').innerHTML = '';

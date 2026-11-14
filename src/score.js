@@ -1,6 +1,6 @@
 // 채점: 원본 선을 덮은 정도 + 선 밖으로 벗어나지 않은 정도 + 획 순서·방향 → 0~100
 (function () {
-  const TOL = 7; // 허용 거리 (100칸 기준)
+  const DEF_TOL = 7; // 허용 거리 (100칸 기준, 작은 글자는 main.js에서 줄여 넘김)
   const W = { cover: 0.6, precise: 0.4, order: 0.4 }; // 모양 점수 × (0.6 + 0.4 × 순서·방향)
 
   const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -25,7 +25,7 @@
 
   const length = poly => poly.reduce((s, p, i) => (i ? s + dist(poly[i - 1], p) : 0), 0);
 
-  function nearRatio(from, to) {
+  function nearRatio(from, to, TOL) {
     if (!from.length) return 0;
     let ok = 0;
     for (const p of from) {
@@ -34,13 +34,13 @@
     return ok / from.length;
   }
 
-  function score(template, strokes) {
+  function score(template, strokes, TOL = DEF_TOL) {
     strokes = strokes.filter(s => s.length > 0);
     if (!strokes.length) return 0;
     const tPts = template.flatMap(s => resample(s));
     const pPts = strokes.flatMap(s => (s.length > 1 ? resample(s) : s));
-    const cover = nearRatio(tPts, pPts);
-    const precise = nearRatio(pPts, tPts);
+    const cover = nearRatio(tPts, pPts, TOL);
+    const precise = nearRatio(pPts, tPts, TOL);
     // 획 순서·방향: i번째 획을 원본 i번째 획과 같은 비율 지점(0·⅓·⅔·끝)에서 비교 → 거꾸로 쓰면 크게 깎임
     const n = Math.min(template.length, strokes.length);
     let ord = 0;

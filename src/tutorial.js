@@ -5,12 +5,12 @@
   const BASIC = [...['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ'].map(k => ['ko', k]), ...['a', 'b', 'c', 'd'].map(k => ['en', k])];
   const PRACTICE = 10; // 연습 더미 장수 [임시]
   const STOP = {};
-  let token = 0, clickResolve = null;
+  let token = 0, clickResolve = null, introduced = false; // 교도관이 스스로 소개하기 전엔 '???'
 
   // ---------- 대사 ----------
   function say(key, vars, hold = true, extra = '') {
     $('dlg').classList.remove('hidden');
-    $('dlgWho').textContent = t('tu_who');
+    $('dlgWho').textContent = introduced ? t('tu_who') : '???';
     $('dlgText').textContent = t(key, vars) + (extra ? ' ' + extra : '');
     $('dlgHint').classList.toggle('hidden', !hold);
     return hold ? new Promise(r => { clickResolve = r; }) : Promise.resolve();
@@ -33,7 +33,7 @@
       writing(true);
       let tries = 0;
       g.T.onSubmit = () => {
-        const s = PC.score(sh.tpl, sh.strokes), ok = s >= g.PASS;
+        const s = PC.score(sh.tpl, sh.strokes, 7 * sh.g), ok = s >= g.PASS;
         g.pop(s, ok); tries++;
         if (ok || tries >= 3) { writing(false); g.T.onSubmit = null; say(ok ? 'tu_ok' : 'tu_meh', { s }, false); setTimeout(res, 1100); }
         else { say('tu_again', { s }, false); sh.strokes = []; sh.ink = 0; g.draw(); }
@@ -58,7 +58,8 @@
       void $('eyes').offsetWidth; $('eyes').classList.add('open'); $('bg').classList.remove('blurry');
       await step(wait(3400)); $('eyes').classList.add('hidden');
       // 2. 상황 설명
-      for (const k of ['tu_1', 'tu_2', 'tu_3', 'tu_4', 'tu_5']) await step(say(k));
+      introduced = false;
+      for (const k of ['tu_1', 'tu_2', 'tu_intro', 'tu_3', 'tu_4', 'tu_5']) { if (k === 'tu_3') introduced = true; await step(say(k)); }
       // 3. 따라 쓰기: 한글·영어 둘 다 맛보기 (언어는 게임 언어와 무관)
       const first = BASIC[Math.floor(Math.random() * BASIC.length)];
       await step(traceOne({ lang: first[0], key: first[1] }, 'tu_order'));
