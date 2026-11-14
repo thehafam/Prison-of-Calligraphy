@@ -1,0 +1,54 @@
+/* 임시 그림: 이미지가 오면 아래 [이미지 자리]의 background를 바꿈 */
+:root { --ink: #e8dcc0; --dim: #9a8b6c; --accent: #c0392b; --ok: #3c8d4f; --panel: rgba(20, 16, 12, .92); }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0d0b09; color: var(--ink); font-family: Georgia, 'Noto Serif KR', serif; overflow: hidden; user-select: none; }
+button { font: inherit; color: var(--ink); background: #3a2f22; border: 1px solid #6b5a40; padding: .5em 1.2em; margin: .3em; cursor: pointer; border-radius: 3px; }
+button:hover:not(:disabled) { background: #4d3f2d; }
+button:disabled { opacity: .4; cursor: default; }
+.hidden { display: none !important; }
+
+#game { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; }
+/* [이미지 자리] 감옥 벽 */
+#bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 30%, #2b241b 0%, #110e0b 70%); z-index: 0; }
+/* [이미지 자리] 창구 */
+#hatch { position: relative; z-index: 1; margin-top: 2vh; width: min(40vh, 60vw); height: 9vh; background: #050403; border: 6px solid #3d342a; border-bottom-width: 10px; display: flex; align-items: flex-end; justify-content: center; }
+#hatchSlot { width: 70%; height: 6px; background: #1b1610; }
+
+#hud { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; flex-wrap: wrap; gap: .4em 1.4em; justify-content: center; padding: .5em; font-size: 15px; background: linear-gradient(#000a, transparent); }
+#hud b { color: var(--dim); font-weight: normal; }
+#hudLives { color: var(--accent); letter-spacing: 2px; }
+
+#deskArea { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+/* [이미지 자리] 책상 */
+#desk { position: relative; padding: 2.5vh 6vh 5vh; background: linear-gradient(#5a4128, #3b2a19); border-radius: 6px; box-shadow: 0 10px 40px #000; }
+#paperWrap { position: relative; width: min(52vh, 86vw); aspect-ratio: 1; }
+#paperWrap.slide { animation: slide .35s ease-out; }
+@keyframes slide { from { transform: translateY(-40%); opacity: 0; } to { transform: none; opacity: 1; } }
+/* [이미지 자리] 종이 질감은 canvas에 그림 (main.js drawPaper) */
+#paper { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; box-shadow: 0 3px 10px #0008; }
+/* [이미지 자리] 묶인 손 */
+#hands { position: absolute; left: 0; right: 0; bottom: .6vh; height: 3vh; display: flex; justify-content: space-between; padding: 0 2vh; pointer-events: none; }
+#hands::before, #hands::after { content: ''; width: 9vh; height: 100%; background: repeating-linear-gradient(90deg, #8a6d45 0 4px, #6b522f 4px 8px); border-radius: 4px; }
+#controls { margin-top: 1.2vh; }
+
+#scorePop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: min(14vh, 22vw); font-weight: bold; pointer-events: none; opacity: 0; }
+#scorePop.show { animation: pop 1s ease-out; }
+@keyframes pop { 0% { opacity: 0; transform: scale(.6); } 20% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: translateY(-15%); } }
+
+#toast { position: absolute; z-index: 6; bottom: 3vh; left: 50%; transform: translateX(-50%); max-width: 90vw; background: var(--panel); border: 1px solid #6b5a40; padding: .6em 1.2em; border-radius: 4px; opacity: 0; transition: opacity .3s; pointer-events: none; text-align: center; }
+#toast.show { opacity: 1; }
+
+#tutBox { position: absolute; z-index: 5; top: 1vh; left: 50%; transform: translateX(-50%); width: min(720px, 94vw); background: var(--panel); border: 1px solid #6b5a40; padding: .8em 1.2em; border-radius: 4px; text-align: center; }
+#tutBox p { margin: .2em 0 .5em; line-height: 1.5; }
+
+.overlay { position: absolute; inset: 0; z-index: 8; background: rgba(5, 4, 3, .88); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16px; }
+.overlay h1 { font-size: clamp(32px, 7vw, 64px); margin: 0 0 .1em; letter-spacing: .05em; }
+.overlay h2 { margin: 0 0 .5em; }
+.overlay .sub { color: var(--dim); margin: 0 0 1.5em; }
+#title button { min-width: 12em; }
+#settings label { display: flex; gap: 1em; align-items: center; margin-bottom: 1em; }
+select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px solid #6b5a40; padding: .3em; }
+#shopTable { border-collapse: collapse; margin-bottom: 1em; }
+#shopTable td, #shopTable th { padding: .35em .8em; border-bottom: 1px solid #3d342a; }
+#shopTable th { color: var(--dim); font-weight: normal; }
+#shopTable button { padding: .25em .8em; margin: 0 .15em; }

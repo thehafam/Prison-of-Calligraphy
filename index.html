@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prison of Calligraphy</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game">
+  <!-- [이미지 자리] 감옥 벽 배경 -->
+  <div id="bg"></div>
+  <!-- [이미지 자리] 종이가 들어오는 창구 -->
+  <div id="hatch"><div id="hatchSlot"></div></div>
+
+  <header id="hud" class="hidden">
+    <span><b data-i18n="stage">Stage</b> <span id="hudStage">1</span></span>
+    <span><b data-i18n="time">Time</b> <span id="hudTime">30</span></span>
+    <span><b data-i18n="quota">Accepted</b> <span id="hudQuota">0/4</span></span>
+    <span><b data-i18n="lives">Lives</b> <span id="hudLives">♥♥♥</span></span>
+    <span><span id="hudMoney">0</span> <b data-i18n="money">Nyang</b></span>
+    <span><b data-i18n="pencil">Pencil</b> <span id="hudPencil"></span></span>
+  </header>
+
+  <main id="deskArea" class="hidden">
+    <!-- [이미지 자리] 책상 · 묶인 손 · 종이 질감 -->
+    <div id="desk">
+      <div id="paperWrap"><canvas id="paper"></canvas><div id="scorePop"></div></div>
+      <div id="hands"></div>
+    </div>
+    <div id="controls">
+      <button id="btnSubmit" data-i18n="submit">Submit</button>
+      <button id="btnNew" data-i18n="newSheet">New sheet</button>
+      <button id="btnShop" data-i18n="shop">Shop</button>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <div id="tutBox" class="hidden">
+    <p id="tutText"></p>
+    <div><button id="tutNext" data-i18n="next">Next</button> <button id="tutSkip" data-i18n="skip">Skip</button></div>
+  </div>
+
+  <section id="title" class="overlay">
+    <h1 data-i18n="title">Prison of Calligraphy</h1>
+    <p class="sub" data-i18n="subtitle"></p>
+    <button id="btnTutorial" data-i18n="tutorial">Tutorial</button>
+    <button id="btnStart" data-i18n="start">Start</button>
+    <button id="btnSettings" data-i18n="settings">Settings</button>
+  </section>
+
+  <section id="settings" class="overlay hidden">
+    <h2 data-i18n="settings">Settings</h2>
+    <label><span data-i18n="language">Language</span>
+      <select id="selLang"><option value="en">English</option><option value="ko">한국어</option></select>
+    </label>
+    <button id="btnSettingsClose" data-i18n="close">Close</button>
+  </section>
+
+  <section id="shop" class="overlay hidden">
+    <h2 data-i18n="shop">Shop</h2>
+    <p class="sub"><span id="shopMoney"></span></p>
+    <table id="shopTable"></table>
+    <button id="btnShopClose" data-i18n="close">Close</button>
+  </section>
+
+  <section id="result" class="overlay hidden">
+    <h2 id="resultTitle"></h2>
+    <p id="resultText"></p>
+    <button id="btnResult"></button>
+  </section>
+</div>
+<script src="src/i18n.js"></script>
+<script src="src/glyphs.js"></script>
+<script src="src/score.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
