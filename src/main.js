@@ -8,11 +8,11 @@
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
   const STAGES = [{ time: 30, quota: 4 }, { time: 30, quota: 5 }, { time: 30, quota: 6 }];
   const PASS = 90;
-  const ICONS = ['assets/pencil_0.jpg']; // 연필 아이콘 (나머지 5종은 이미지 오면 추가)
+  const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 5종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
   const S = { mode: 'title', stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0],
-    timeLeft: 0, passed: 0, earned: 0, running: false, busy: false, tutStep: 0, tutTries: 0 };
+    timeLeft: 0, stack: [], passed: 0, earned: 0, running: false, busy: false, tutStep: 0, tutTries: 0 };
   let sheet = null, cur = null, timerId = null;
 
   // ---------- 종이 그리기 ----------
@@ -86,10 +86,13 @@
   // 창구에서 날아오는 종이: 배경 이미지(cover) 안 창구 위치를 화면 좌표로 바꿔 출발점으로
   const BG = { w: 2000, h: 1091 }, HATCH = { x: 1005, y: 330 };
   let flying = false;
+  function hatchPoint() {
+    const vw = innerWidth, vh = innerHeight, k = Math.max(vw / BG.w, vh / BG.h);
+    return [(vw - BG.w * k) / 2 + HATCH.x * k, (vh - BG.h * k) / 2 + HATCH.y * k];
+  }
   function fly(kind, then) {
-    const w = $('paperWrap'), vw = innerWidth, vh = innerHeight;
-    const k = Math.max(vw / BG.w, vh / BG.h), hx = (vw - BG.w * k) / 2 + HATCH.x * k, hy = (vh - BG.h * k) / 2 + HATCH.y * k;
-    w.classList.remove('arrive', 'leave'); w.style.transform = '';
+    const w = $('paperWrap'), [hx, hy] = hatchPoint();
+    w.style.visibility = ''; w.classList.remove('arrive', 'leave'); w.style.transform = '';
     const r = w.getBoundingClientRect();
     w.style.setProperty('--fx', `${hx - (r.left + r.width / 2)}px`);
     w.style.setProperty('--fy', `${hy - (r.top + r.height / 2)}px`);
@@ -162,20 +165,40 @@
     renderShop(); hud();
   });
 
-  // ---------- 상납 ----------
+  // ---------- 상납: 다 쓴 종이는 책상 옆에 쌓였다가, 시간이 끝나면 한 장씩 창구로 빨려 들어가 판정 ----------
   function submit() {
     if (!sheet || !sheet.strokes.length || S.busy || flying) return;
-    const s = PC.score(sheet.tpl, sheet.strokes), ok = s >= PASS;
-    pop(s, ok);
     if (S.mode === 'tutorial') {
-      S.tutTries++;
+      const s = PC.score(sheet.tpl, sheet.strokes), ok = s >= PASS;
+      pop(s, ok); S.tutTries++;
       if (ok) { toast(t('great', { s })); S.tutStep++; showTut(); }
       else { toast(t('tryAgain', { s })); newSheet(TUTORIAL[PC.getLang()]); if (S.tutTries >= 3) $('tutSkip').classList.remove('hidden'); }
       return;
     }
     if (!S.running) return;
-    if (ok) { S.passed++; S.money++; S.earned++; }
-    hud(); fly('leave', () => { if (S.running) newSheet(); });
+    toStack(); hud(); newSheet();
+  }
+  function toStack() {
+    const r = $('paperWrap').getBoundingClientRect(), i = S.stack.length;
+    S.stack.push({ tpl: sheet.tpl, strokes: sheet.strokes });
+    const img = new Image(); img.src = cv.toDataURL('image/jpeg', 0.7); img.className = 'sheet-mini';
+    img.style.width = r.width + 'px'; img.style.height = r.height + 'px';
+    img.style.transform = `translate(${r.left}px,${r.top}px)`;
+    $('stack').appendChild(img);
+    const k = 0.3, w = r.width * k;
+    const x = Math.min(r.right + 24, innerWidth - w - 12) + Math.random() * 8 - 4, y = r.bottom - w - i * 4;
+    const rot = Math.random() * 10 - 5;
+    requestAnimationFrame(() => requestAnimationFrame(() => { img.style.transform = `translate(${x}px,${y}px) scale(${k}) rotate(${rot}deg)`; }));
+    sheet = null;
+  }
+  function vacuum(done) {
+    const imgs = [...$('stack').children].reverse(), [hx, hy] = hatchPoint(), GAP = 220;
+    imgs.forEach((img, i) => setTimeout(() => {
+      img.classList.add('suck'); sfxNoise(0.35, 500, 2600, 0.5);
+      img.style.transform = `translate(${hx}px,${hy}px) scale(0.03) rotate(${Math.random() * 720 - 360}deg)`;
+      img.style.opacity = '0';
+    }, 400 + i * GAP));
+    setTimeout(done, 400 + imgs.length * GAP + 700);
   }
   function pop(s, ok) {
     const p = $('scorePop'); p.textContent = s; p.style.color = ok ? 'var(--ok)' : 'var(--accent)';
@@ -189,7 +212,7 @@
     startStage();
   }
   function startStage() {
-    S.mode = 'stage'; S.passed = 0; S.earned = 0; S.timeLeft = stageDef().time; S.running = true; S.busy = false;
+    S.mode = 'stage'; S.passed = 0; S.earned = 0; S.stack = []; $('stack').innerHTML = ''; $('controls').style.visibility = ''; S.timeLeft = stageDef().time; S.running = true; S.busy = false;
     show('game'); newSheet(); hud();
     const t0 = performance.now(), total = S.timeLeft;
     clearInterval(timerId);
@@ -202,6 +225,15 @@
   function endStage() {
     clearInterval(timerId); S.running = false; cur = null;
     $('shop').classList.add('hidden');
+    // 시간이 끝났을 때 쓰던 종이도 글씨가 있으면 함께 냄
+    if (sheet && sheet.strokes.length && !flying) toStack();
+    sheet = null; $('paperWrap').style.visibility = 'hidden'; $('controls').style.visibility = 'hidden';
+    vacuum(judge);
+  }
+  function judge() {
+    const scores = S.stack.map(x => PC.score(x.tpl, x.strokes));
+    S.passed = scores.filter(v => v >= PASS).length; S.earned = S.passed; S.money += S.passed;
+    $('resultScores').innerHTML = scores.map(v => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}</span>`).join('');
     const q = stageDef().quota, clear = S.passed >= q;
     if (!clear) S.lives--;
     hud();
@@ -213,6 +245,7 @@
   }
   function gameOver(txt = '') {
     clearInterval(timerId); S.running = false;
+    if (!txt) $('resultScores').innerHTML = '';
     result(t('gameOver'), txt, t('restart'), toTitle);
   }
   function result(title, text, btn, fn) {
@@ -252,6 +285,7 @@
     if (g) fit();
   }
   function toTitle() {
+    $('stack').innerHTML = '';
     clearInterval(timerId); S.mode = 'title'; S.running = false; sheet = null;
     $('tutBox').classList.add('hidden'); show('title');
   }
@@ -259,7 +293,7 @@
     if (S.mode !== 'stage') return;
     $('hudStage').textContent = S.stage + 1;
     $('hudTime').textContent = S.timeLeft.toFixed(1);
-    $('hudQuota').textContent = `${S.passed}/${stageDef().quota}`;
+    $('hudQuota').textContent = `${S.stack.length} / ${stageDef().quota}`;
     $('hudLives').textContent = '♥'.repeat(Math.max(0, S.lives)) + '♡'.repeat(Math.max(0, 3 - S.lives));
     $('hudMoney').textContent = S.money;
     const spare = S.spares.reduce((a, b) => a + b, 0);
@@ -268,17 +302,20 @@
   let toastId;
   function toast(m) { const e = $('toast'); e.textContent = m; e.classList.add('show'); clearTimeout(toastId); toastId = setTimeout(() => e.classList.remove('show'), 2600); }
 
-  // 부러지는 소리 (Web Audio 합성)
+  // 소리 (Web Audio 합성): 잡음을 거른 짧은 소리. 부러짐 = 높은 딱 / 빨려 듦 = 올라가는 휙
   let ac;
-  function sfxSnap() {
+  function sfxNoise(dur, f0, f1, gain, type = 'bandpass') {
     try {
       ac = ac || new AudioContext();
-      const n = ac.sampleRate * 0.12, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
-      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4);
-      const src = ac.createBufferSource(), f = ac.createBiquadFilter();
-      f.type = 'highpass'; f.frequency.value = 1800; src.buffer = buf; src.connect(f).connect(ac.destination); src.start();
+      const n = Math.round(ac.sampleRate * dur), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * Math.min(1, i / n * (type === 'highpass' ? 8 : 1)));
+      const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      f.type = type; f.frequency.setValueAtTime(f0, ac.currentTime); f.frequency.exponentialRampToValueAtTime(f1, ac.currentTime + dur);
+      g.gain.setValueAtTime(gain, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+      src.buffer = buf; src.connect(f).connect(g).connect(ac.destination); src.start();
     } catch (e) {}
   }
+  const sfxSnap = () => sfxNoise(0.12, 1800, 2200, 1, 'highpass');
 
   // ---------- 버튼 ----------
   $('btnSubmit').onclick = submit;
