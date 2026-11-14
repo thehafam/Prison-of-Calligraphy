@@ -35,9 +35,12 @@
   <div id="stack"></div>
   <div id="toast"></div>
 
-  <div id="tutBox" class="hidden">
-    <p id="tutText"></p>
-    <div><button id="tutNext" data-i18n="next">Next</button> <button id="tutSkip" data-i18n="skip">Skip</button></div>
+  <!-- 튜토리얼: 눈을 뜨는 눈꺼풀, 창구 너머 목소리의 대사 -->
+  <div id="eyes" class="hidden"><div class="hole"></div></div>
+  <div id="dlg" class="hidden">
+    <div id="dlgWho"></div>
+    <p id="dlgText"></p>
+    <div id="dlgHint" data-i18n="tu_hint">▸ click</div>
   </div>
 
   <section id="title" class="overlay">
@@ -73,5 +76,6 @@
 <script src="src/glyphs.js"></script>
 <script src="src/score.js"></script>
 <script src="src/main.js"></script>
+<script src="src/tutorial.js"></script>
 </body>
 </html>

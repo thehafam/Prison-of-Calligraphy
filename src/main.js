@@ -1,6 +1,6 @@
-// 게임 흐름: 타이틀 → (튜토리얼) → 단계(제한시간 안에 90점 이상 종이를 할당량만큼) → 결과
+// 게임 흐름: 타이틀 → 튜토리얼(src/tutorial.js) → 단계(제한시간 안에 90점 이상 종이를 할당량만큼) → 결과
 (function () {
-  const { t, GLYPHS, POOLS, TUTORIAL } = PC;
+  const { t, GLYPHS, POOLS } = PC;
   const $ = id => document.getElementById(id);
 
   // 필기구: 파손 확률 7%p씩 감소(마지막은 0%), 가격 3배씩
@@ -8,12 +8,13 @@
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
   const STAGES = [{ time: 30, quota: 4 }, { time: 30, quota: 5 }, { time: 30, quota: 6 }];
   const PASS = 90;
-  const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 5종은 이미지 오면 추가)
+  const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
   const S = { mode: 'title', stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0],
-    timeLeft: 0, stack: [], passed: 0, earned: 0, running: false, busy: false, tutStep: 0, tutTries: 0, practice: 0, inPractice: false };
-  const PRACTICE = 10; // 튜토리얼 연습 판: 종이 10장, 90점 이상마다 1냥 [임시]
+    timeLeft: 0, stack: [], passed: 0, earned: 0, running: false, busy: false };
+  // 튜토리얼이 조종하는 고리: 쓰기 허용·상납·연필 파손·상점 닫힘
+  const T = { allowDraw: false, allowShop: false, onSubmit: null, onBreak: null, onShopClose: null };
   let sheet = null, cur = null, timerId = null;
 
   // ---------- 종이 그리기 ----------
@@ -70,18 +71,21 @@
     ctx.fillText(n, x + dx, y + dy + 0.2);
   }
 
-  // ---------- 종이 한 장 ----------
-  function newSheet(key) {
-    const lang = PC.getLang();
-    if (!key) { const pool = POOLS[lang]; key = pool[Math.floor(Math.random() * pool.length)]; }
-    const tpl = GLYPHS[lang][key];
-    sheet = { key, tpl, strokes: [], ink: 0, breakAt: Infinity };
-    // 파손: 장마다 연필 등급 확률로, 쓰는 도중 아무 순간에
-    if (S.mode === 'stage' && S.hand !== null && Math.random() < PENCILS[S.hand].p) {
-      const len = tpl.reduce((a, s) => a + PC.length(s), 0);
-      sheet.breakAt = len * (0.1 + Math.random() * 0.8);
+  // ---------- 종이 한 장: 글자는 게임 언어와 상관없이 한글·영어가 섞여 나옴 ----------
+  function newSheet(opt = {}) {
+    let { lang, key } = opt;
+    if (!key) {
+      const pool = opt.pool || [...POOLS.ko.map(k => ['ko', k]), ...POOLS.en.map(k => ['en', k])];
+      [lang, key] = pool[Math.floor(Math.random() * pool.length)];
     }
+    const tpl = GLYPHS[lang][key];
+    sheet = { lang, key, tpl, strokes: [], ink: 0, breakAt: Infinity };
+    // 파손: 장마다 연필 등급 확률로, 쓰는 도중 아무 순간에 (튜토리얼은 정해 둔 장에서만)
+    const len = tpl.reduce((a, s) => a + PC.length(s), 0);
+    if (opt.breakAt) sheet.breakAt = len * opt.breakAt;
+    else if (S.mode === 'stage' && S.hand !== null && Math.random() < PENCILS[S.hand].p) sheet.breakAt = len * (0.1 + Math.random() * 0.8);
     draw(); fly('arrive');
+    return sheet;
   }
 
   // 창구에서 날아오는 종이: 배경 이미지(cover) 안 창구 위치를 화면 좌표로 바꿔 출발점으로
@@ -101,7 +105,7 @@
     w.onanimationend = () => { flying = false; if (then) then(); };
   }
 
-  const canDraw = () => (S.mode === 'stage' ? S.running : S.mode === 'tutorial' && (S.tutStep === 2 || S.inPractice)) && S.hand !== null && !S.busy && !flying;
+  const canDraw = () => (S.mode === 'stage' ? S.running : S.mode === 'tutorial' && T.allowDraw) && S.hand !== null && !S.busy && !flying;
   function pt(e) { const r = cv.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100]; }
   cv.addEventListener('pointerdown', e => {
     if (!sheet || !canDraw()) return;
@@ -121,7 +125,9 @@
   // ---------- 연필 ----------
   function breakPencil() {
     cur = null; sheet.breakAt = Infinity; S.hand = null;
-    sfxSnap(); toast(t('pencilBroke'));
+    sfxSnap();
+    if (S.mode === 'tutorial') { hud(); return T.onBreak && T.onBreak(); }
+    toast(t('pencilBroke'));
     const best = bestSpare();
     if (best >= 0) {
       S.busy = true;
@@ -169,21 +175,7 @@
   // ---------- 상납: 다 쓴 종이는 책상 옆에 쌓였다가, 시간이 끝나면 한 장씩 창구로 빨려 들어가 판정 ----------
   function submit() {
     if (!sheet || !sheet.strokes.length || S.busy || flying) return;
-    if (S.inPractice) {
-      const s = PC.score(sheet.tpl, sheet.strokes), ok = s >= PASS;
-      pop(s, ok); S.practice++; if (ok) S.money++;
-      toast(t('practiceProg', { n: S.practice, N: PRACTICE, m: S.money }));
-      if (S.practice >= PRACTICE) { S.inPractice = false; $('tutBox').classList.add('hidden'); setTimeout(startStage, 900); }
-      else newSheet();
-      return;
-    }
-    if (S.mode === 'tutorial') {
-      const s = PC.score(sheet.tpl, sheet.strokes), ok = s >= PASS;
-      pop(s, ok); S.tutTries++;
-      if (ok) { toast(t('great', { s })); S.tutStep++; showTut(); }
-      else { toast(t('tryAgain', { s })); newSheet(TUTORIAL[PC.getLang()]); if (S.tutTries >= 3) $('tutSkip').classList.remove('hidden'); }
-      return;
-    }
+    if (S.mode === 'tutorial') return T.onSubmit && T.onSubmit();
     if (!S.running) return;
     toStack(); hud(); newSheet();
   }
@@ -198,7 +190,7 @@
     const x = Math.min(r.right + 24, innerWidth - w - 12) + Math.random() * 8 - 4, y = r.bottom - w - i * 4;
     const rot = Math.random() * 10 - 5;
     requestAnimationFrame(() => requestAnimationFrame(() => { img.style.transform = `translate(${x}px,${y}px) scale(${k}) rotate(${rot}deg)`; }));
-    sheet = null;
+    sheet = null; $('paperWrap').style.visibility = 'hidden';
   }
   function vacuum(done) {
     const imgs = [...$('stack').children].reverse(), [hx, hy] = hatchPoint(), GAP = 220;
@@ -209,6 +201,14 @@
     }, 400 + i * GAP));
     setTimeout(done, 400 + imgs.length * GAP + 700);
   }
+  // 정산: 더미의 종이를 채점해 90점 이상마다 1냥
+  function settle() {
+    const scores = S.stack.map(x => PC.score(x.tpl, x.strokes));
+    S.passed = scores.filter(v => v >= PASS).length; S.earned = S.passed; S.money += S.passed;
+    $('resultScores').innerHTML = scores.map(v => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}</span>`).join('');
+    S.stack = []; $('stack').innerHTML = '';
+    return scores;
+  }
   function pop(s, ok) {
     const p = $('scorePop'); p.textContent = s; p.style.color = ok ? 'var(--ok)' : 'var(--accent)';
     p.classList.remove('show'); void p.offsetWidth; p.classList.add('show');
@@ -218,10 +218,11 @@
   const stageDef = () => STAGES[Math.min(S.stage, STAGES.length - 1)];
   function startGame() {
     Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0] });
-    startTutorial(); // 새 게임은 반드시 튜토리얼(연습 판에서 돈을 벎)부터
+    PC.tutorial.run(); // 새 게임은 반드시 튜토리얼부터
   }
   function startStage() {
-    S.mode = 'stage'; S.passed = 0; S.earned = 0; S.stack = []; $('stack').innerHTML = ''; $('controls').style.visibility = ''; S.timeLeft = stageDef().time; S.running = true; S.busy = false;
+    Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: stageDef().time, running: true, busy: false });
+    $('stack').innerHTML = ''; $('controls').style.visibility = '';
     show('game'); newSheet(); hud();
     const t0 = performance.now(), total = S.timeLeft;
     clearInterval(timerId);
@@ -234,15 +235,13 @@
   function endStage() {
     clearInterval(timerId); S.running = false; cur = null;
     $('shop').classList.add('hidden');
-    // 시간이 끝났을 때 쓰던 종이도 글씨가 있으면 함께 냄
+    // 시간이 끝났을 때 쓰던 종이도 글씨가 있으면 함께 냄 [임시]
     if (sheet && sheet.strokes.length && !flying) toStack();
     sheet = null; $('paperWrap').style.visibility = 'hidden'; $('controls').style.visibility = 'hidden';
     vacuum(judge);
   }
   function judge() {
-    const scores = S.stack.map(x => PC.score(x.tpl, x.strokes));
-    S.passed = scores.filter(v => v >= PASS).length; S.earned = S.passed; S.money += S.passed;
-    $('resultScores').innerHTML = scores.map(v => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}</span>`).join('');
+    settle();
     const q = stageDef().quota, clear = S.passed >= q;
     if (!clear) S.lives--;
     hud();
@@ -264,44 +263,17 @@
     $('result').classList.remove('hidden');
   }
 
-  // ---------- 튜토리얼 ----------
-  function startTutorial() {
-    S.mode = 'tutorial'; S.tutStep = 0; S.tutTries = 0; S.inPractice = false; S.busy = false;
-    show('game'); sheet = null; draw(); showTut();
-  }
-  function showTut() {
-    const steps = t('tut');
-    if (S.tutStep >= steps.length) { // 연습 판: 돈을 벌며 손을 푼다
-      S.inPractice = true; S.practice = 0;
-      $('tutText').textContent = t('practiceIntro', { N: PRACTICE });
-      ['tutNext', 'tutSkip'].forEach(id => $(id).classList.add('hidden'));
-      $('controls').classList.remove('hidden'); newSheet(); return;
-    }
-    $('tutBox').classList.remove('hidden');
-    $('tutText').textContent = steps[S.tutStep];
-    const tracing = S.tutStep === 2;
-    $('tutNext').textContent = t('next');
-    $('tutNext').classList.toggle('hidden', tracing);
-    $('tutSkip').classList.toggle('hidden', !tracing || S.tutTries < 3);
-    if (S.tutStep === 1 || tracing) { if (!sheet) newSheet(TUTORIAL[PC.getLang()]); }
-    $('controls').classList.toggle('hidden', !tracing);
-  }
-  $('tutNext').onclick = () => { S.tutStep++; showTut(); };
-  $('tutSkip').onclick = () => { S.tutStep++; showTut(); };
-
   // ---------- 화면 ----------
   function show(which) {
     const g = which === 'game';
     $('title').classList.toggle('hidden', g);
-    ['hud', 'deskArea'].forEach(id => $(id).classList.toggle('hidden', !g));
-    $('controls').classList.remove('hidden');
+    $('deskArea').classList.toggle('hidden', !g);
     $('hud').classList.toggle('hidden', !g || S.mode !== 'stage');
     if (g) fit();
   }
   function toTitle() {
-    $('stack').innerHTML = '';
     clearInterval(timerId); S.mode = 'title'; S.running = false; sheet = null;
-    $('tutBox').classList.add('hidden'); show('title');
+    $('stack').innerHTML = ''; PC.tutorial.stop(); show('title');
   }
   function hud() {
     if (S.mode !== 'stage') return;
@@ -333,14 +305,19 @@
 
   // ---------- 버튼 ----------
   $('btnSubmit').onclick = submit;
-  $('btnNew').onclick = () => { if (flying) return; if (S.mode === 'stage' && S.running && !S.busy) newSheet(); else if (S.inPractice) newSheet(); else if (S.mode === 'tutorial') newSheet(sheet && sheet.key); };
-  $('btnShop').onclick = () => { if (S.mode === 'stage' || S.inPractice) openShop(); };
-  $('btnShopClose').onclick = () => $('shop').classList.add('hidden');
+  $('btnNew').onclick = () => {
+    if (flying || S.busy || !sheet) return;
+    if (S.mode === 'stage' && S.running) newSheet();
+    else if (S.mode === 'tutorial' && T.allowDraw) { sheet.strokes = []; sheet.ink = 0; draw(); } // 튜토리얼: 같은 글자를 지우고 다시
+  };
+  $('btnShop').onclick = () => { if (S.mode === 'stage' || T.allowShop) openShop(); };
+  $('btnShopClose').onclick = () => { $('shop').classList.add('hidden'); if (T.onShopClose) T.onShopClose(); };
   $('btnStart').onclick = startGame;
   $('btnSettings').onclick = () => { $('selLang').value = PC.getLang(); $('settings').classList.remove('hidden'); };
   $('btnSettingsClose').onclick = () => $('settings').classList.add('hidden');
   $('selLang').onchange = e => { PC.setLang(e.target.value); hud(); };
 
   PC.setLang(PC.getLang());
-  PC.game = { S, PENCILS, get sheet() { return sheet; }, startGame, startTutorial, endStage };
+  PC.game = { S, T, PENCILS, PASS, get sheet() { return sheet; }, get flying() { return flying; },
+    newSheet, toStack, vacuum, settle, pop, toast, result, openShop, show, startGame, startStage, endStage, draw, hud };
 })();
