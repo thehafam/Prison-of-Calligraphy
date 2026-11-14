@@ -24,8 +24,10 @@
         'Each sheet is scored 0–100 by how well you cover the line, how little you stray, and the stroke order. Only sheets scoring 90 or more are accepted.',
         'Each stage has a time limit (e.g. 30 seconds). Finished sheets pile up beside you; when time runs out, they are all taken through the window and judged. Too few accepted sheets and you lose one of your 3 lives.',
         'Every accepted sheet earns 1 nyang. Cheap pencils break at random — a shoddy pencil breaks 40% of the time. Buy better pencils and spares at the Shop.',
-        'If your pencil breaks with no spare and no money, you lose a life. Now — write.',
+        'If your pencil breaks with no spare and no money, you lose a life. First, a practice round.',
       ],
+      practiceIntro: 'Practice: write {N} sheets. Each sheet scoring 90+ earns 1 nyang right away — save it for a spare pencil.',
+      practiceProg: 'Practice {n}/{N} · {m} nyang',
       pencils: ['Shoddy Pencil', 'Pencil', 'Decent Pencil', 'Fairly Good Pencil', 'Fine Pencil', 'Unbreakable Pencil'],
     },
     ko: {
@@ -51,8 +53,10 @@
         '종이마다 선을 얼마나 덮었는지, 얼마나 벗어나지 않았는지, 획 순서를 보고 0~100점을 매긴다. 90점 이상만 인정된다.',
         '단계마다 제한시간(예: 30초)이 있다. 다 쓴 종이는 책상 옆에 쌓이고, 시간이 끝나면 한꺼번에 창구로 빨려 들어가 판정을 받는다. 인정받은 장수가 모자라면 목숨 3개 중 하나를 잃는다.',
         '인정된 종이 한 장에 1냥. 싼 연필은 아무 때나 부러진다 — 볼품없는 연필은 40%. 상점에서 좋은 연필과 여분을 사 두자.',
-        '연필이 부러졌는데 여분도 돈도 없으면 목숨을 잃는다. 자, 써라.',
+        '연필이 부러졌는데 여분도 돈도 없으면 목숨을 잃는다. 먼저 연습 판이다.',
       ],
+      practiceIntro: '연습: 종이 {N}장을 써 보자. 90점 이상이면 장마다 바로 1냥 — 여분 연필 살 돈으로 모아 두자.',
+      practiceProg: '연습 {n}/{N} · {m}냥',
       pencils: ['볼품없는 연필', '연필', '괜찮은 연필', '제법 좋은 연필', '고급연필', '깨지지 않은 연필'],
     },
   };

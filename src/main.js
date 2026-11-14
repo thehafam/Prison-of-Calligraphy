@@ -12,7 +12,8 @@
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
   const S = { mode: 'title', stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0],
-    timeLeft: 0, stack: [], passed: 0, earned: 0, running: false, busy: false, tutStep: 0, tutTries: 0 };
+    timeLeft: 0, stack: [], passed: 0, earned: 0, running: false, busy: false, tutStep: 0, tutTries: 0, practice: 0, inPractice: false };
+  const PRACTICE = 10; // 튜토리얼 연습 판: 종이 10장, 90점 이상마다 1냥 [임시]
   let sheet = null, cur = null, timerId = null;
 
   // ---------- 종이 그리기 ----------
@@ -100,7 +101,7 @@
     w.onanimationend = () => { flying = false; if (then) then(); };
   }
 
-  const canDraw = () => (S.mode === 'stage' ? S.running : S.mode === 'tutorial' && S.tutStep === 2) && S.hand !== null && !S.busy && !flying;
+  const canDraw = () => (S.mode === 'stage' ? S.running : S.mode === 'tutorial' && (S.tutStep === 2 || S.inPractice)) && S.hand !== null && !S.busy && !flying;
   function pt(e) { const r = cv.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100]; }
   cv.addEventListener('pointerdown', e => {
     if (!sheet || !canDraw()) return;
@@ -168,6 +169,14 @@
   // ---------- 상납: 다 쓴 종이는 책상 옆에 쌓였다가, 시간이 끝나면 한 장씩 창구로 빨려 들어가 판정 ----------
   function submit() {
     if (!sheet || !sheet.strokes.length || S.busy || flying) return;
+    if (S.inPractice) {
+      const s = PC.score(sheet.tpl, sheet.strokes), ok = s >= PASS;
+      pop(s, ok); S.practice++; if (ok) S.money++;
+      toast(t('practiceProg', { n: S.practice, N: PRACTICE, m: S.money }));
+      if (S.practice >= PRACTICE) { S.inPractice = false; $('tutBox').classList.add('hidden'); setTimeout(startStage, 900); }
+      else newSheet();
+      return;
+    }
     if (S.mode === 'tutorial') {
       const s = PC.score(sheet.tpl, sheet.strokes), ok = s >= PASS;
       pop(s, ok); S.tutTries++;
@@ -209,7 +218,7 @@
   const stageDef = () => STAGES[Math.min(S.stage, STAGES.length - 1)];
   function startGame() {
     Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0] });
-    startStage();
+    startTutorial(); // 새 게임은 반드시 튜토리얼(연습 판에서 돈을 벎)부터
   }
   function startStage() {
     S.mode = 'stage'; S.passed = 0; S.earned = 0; S.stack = []; $('stack').innerHTML = ''; $('controls').style.visibility = ''; S.timeLeft = stageDef().time; S.running = true; S.busy = false;
@@ -257,16 +266,21 @@
 
   // ---------- 튜토리얼 ----------
   function startTutorial() {
-    S.mode = 'tutorial'; S.tutStep = 0; S.tutTries = 0; S.hand = 0; S.busy = false;
+    S.mode = 'tutorial'; S.tutStep = 0; S.tutTries = 0; S.inPractice = false; S.busy = false;
     show('game'); sheet = null; draw(); showTut();
   }
   function showTut() {
     const steps = t('tut');
-    if (S.tutStep >= steps.length) { $('tutBox').classList.add('hidden'); return startGame(); }
+    if (S.tutStep >= steps.length) { // 연습 판: 돈을 벌며 손을 푼다
+      S.inPractice = true; S.practice = 0;
+      $('tutText').textContent = t('practiceIntro', { N: PRACTICE });
+      ['tutNext', 'tutSkip'].forEach(id => $(id).classList.add('hidden'));
+      $('controls').classList.remove('hidden'); newSheet(); return;
+    }
     $('tutBox').classList.remove('hidden');
     $('tutText').textContent = steps[S.tutStep];
     const tracing = S.tutStep === 2;
-    $('tutNext').textContent = S.tutStep === steps.length - 1 ? t('start') : t('next');
+    $('tutNext').textContent = t('next');
     $('tutNext').classList.toggle('hidden', tracing);
     $('tutSkip').classList.toggle('hidden', !tracing || S.tutTries < 3);
     if (S.tutStep === 1 || tracing) { if (!sheet) newSheet(TUTORIAL[PC.getLang()]); }
@@ -319,11 +333,10 @@
 
   // ---------- 버튼 ----------
   $('btnSubmit').onclick = submit;
-  $('btnNew').onclick = () => { if (flying) return; if (S.mode === 'stage' && S.running && !S.busy) newSheet(); else if (S.mode === 'tutorial') newSheet(sheet && sheet.key); };
-  $('btnShop').onclick = () => { if (S.mode === 'stage') openShop(); };
+  $('btnNew').onclick = () => { if (flying) return; if (S.mode === 'stage' && S.running && !S.busy) newSheet(); else if (S.inPractice) newSheet(); else if (S.mode === 'tutorial') newSheet(sheet && sheet.key); };
+  $('btnShop').onclick = () => { if (S.mode === 'stage' || S.inPractice) openShop(); };
   $('btnShopClose').onclick = () => $('shop').classList.add('hidden');
   $('btnStart').onclick = startGame;
-  $('btnTutorial').onclick = startTutorial;
   $('btnSettings').onclick = () => { $('selLang').value = PC.getLang(); $('settings').classList.remove('hidden'); };
   $('btnSettingsClose').onclick = () => $('settings').classList.add('hidden');
   $('selLang').onchange = e => { PC.setLang(e.target.value); hud(); };
