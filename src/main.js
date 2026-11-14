@@ -8,6 +8,7 @@
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
   const STAGES = [{ time: 30, quota: 4 }, { time: 30, quota: 5 }, { time: 30, quota: 6 }];
   const PASS = 90;
+  const ICONS = ['assets/pencil_0.jpg']; // 연필 아이콘 (나머지 5종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
   const S = { mode: 'title', stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0],
@@ -79,11 +80,24 @@
       const len = tpl.reduce((a, s) => a + PC.length(s), 0);
       sheet.breakAt = len * (0.1 + Math.random() * 0.8);
     }
-    const w = $('paperWrap'); w.classList.remove('slide'); void w.offsetWidth; w.classList.add('slide');
-    draw();
+    draw(); fly('arrive');
   }
 
-  const canDraw = () => (S.mode === 'stage' ? S.running : S.mode === 'tutorial' && S.tutStep === 2) && S.hand !== null && !S.busy;
+  // 창구에서 날아오는 종이: 배경 이미지(cover) 안 창구 위치를 화면 좌표로 바꿔 출발점으로
+  const BG = { w: 2000, h: 1091 }, HATCH = { x: 1005, y: 330 };
+  let flying = false;
+  function fly(kind, then) {
+    const w = $('paperWrap'), vw = innerWidth, vh = innerHeight;
+    const k = Math.max(vw / BG.w, vh / BG.h), hx = (vw - BG.w * k) / 2 + HATCH.x * k, hy = (vh - BG.h * k) / 2 + HATCH.y * k;
+    w.classList.remove('arrive', 'leave'); w.style.transform = '';
+    const r = w.getBoundingClientRect();
+    w.style.setProperty('--fx', `${hx - (r.left + r.width / 2)}px`);
+    w.style.setProperty('--fy', `${hy - (r.top + r.height / 2)}px`);
+    void w.offsetWidth; flying = true; cur = null; w.classList.add(kind);
+    w.onanimationend = () => { flying = false; if (then) then(); };
+  }
+
+  const canDraw = () => (S.mode === 'stage' ? S.running : S.mode === 'tutorial' && S.tutStep === 2) && S.hand !== null && !S.busy && !flying;
   function pt(e) { const r = cv.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100]; }
   cv.addEventListener('pointerdown', e => {
     if (!sheet || !canDraw()) return;
@@ -128,7 +142,8 @@
     let h = `<tr><th></th><th>${t('breakRate')}</th><th>${t('price')}</th><th>${t('owned')}</th><th></th></tr>`;
     PENCILS.forEach((pc, g) => {
       const own = S.spares[g] + (S.hand === g ? ` · ${t('inHand')}` : '');
-      h += `<tr><td>${names[g]}</td><td>${Math.round(pc.p * 100)}%</td><td>${pc.price}</td><td>${own}</td><td>
+      const icon = ICONS[g] ? `<img class="pencil-icon" src="${ICONS[g]}" alt=""> ` : '';
+      h += `<tr><td>${icon}${names[g]}</td><td>${Math.round(pc.p * 100)}%</td><td>${pc.price}</td><td>${own}</td><td>
         <button data-buy="${g}" ${S.money < pc.price ? 'disabled' : ''}>${t('buy')}</button>
         <button data-use="${g}" ${S.spares[g] && S.hand !== g ? '' : 'disabled'}>${t('use')}</button></td></tr>`;
     });
@@ -149,7 +164,7 @@
 
   // ---------- 상납 ----------
   function submit() {
-    if (!sheet || !sheet.strokes.length || S.busy) return;
+    if (!sheet || !sheet.strokes.length || S.busy || flying) return;
     const s = PC.score(sheet.tpl, sheet.strokes), ok = s >= PASS;
     pop(s, ok);
     if (S.mode === 'tutorial') {
@@ -160,7 +175,7 @@
     }
     if (!S.running) return;
     if (ok) { S.passed++; S.money++; S.earned++; }
-    hud(); newSheet();
+    hud(); fly('leave', () => { if (S.running) newSheet(); });
   }
   function pop(s, ok) {
     const p = $('scorePop'); p.textContent = s; p.style.color = ok ? 'var(--ok)' : 'var(--accent)';
@@ -267,7 +282,7 @@
 
   // ---------- 버튼 ----------
   $('btnSubmit').onclick = submit;
-  $('btnNew').onclick = () => { if (S.mode === 'stage' && S.running && !S.busy) newSheet(); else if (S.mode === 'tutorial') newSheet(sheet && sheet.key); };
+  $('btnNew').onclick = () => { if (flying) return; if (S.mode === 'stage' && S.running && !S.busy) newSheet(); else if (S.mode === 'tutorial') newSheet(sheet && sheet.key); };
   $('btnShop').onclick = () => { if (S.mode === 'stage') openShop(); };
   $('btnShopClose').onclick = () => $('shop').classList.add('hidden');
   $('btnStart').onclick = startGame;

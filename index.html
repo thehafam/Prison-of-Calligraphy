@@ -8,10 +8,8 @@
 </head>
 <body>
 <div id="game">
-  <!-- [이미지 자리] 감옥 벽 배경 -->
+  <!-- 배경: 감옥 벽·창구·책상·묶인 손 한 장면 (assets/bg_cell.jpg) -->
   <div id="bg"></div>
-  <!-- [이미지 자리] 종이가 들어오는 창구 -->
-  <div id="hatch"><div id="hatchSlot"></div></div>
 
   <header id="hud" class="hidden">
     <span><b data-i18n="stage">Stage</b> <span id="hudStage">1</span></span>
@@ -23,10 +21,8 @@
   </header>
 
   <main id="deskArea" class="hidden">
-    <!-- [이미지 자리] 책상 · 묶인 손 · 종이 질감 -->
     <div id="desk">
-      <div id="paperWrap"><canvas id="paper"></canvas><div id="scorePop"></div></div>
-      <div id="hands"></div>
+      <div id="paperWrap"><canvas id="paper"></canvas></div><div id="scorePop"></div>
     </div>
     <div id="controls">
       <button id="btnSubmit" data-i18n="submit">Submit</button>
