@@ -33,7 +33,9 @@
     clock: { price: [15, 30, 50, 80, 120] },   // 느린 시계: 단계 시간 +4초/레벨
     hand:  { price: [10, 20, 35, 55, 80] },    // 빠른 손: 여분으로 바꿔 쥐는 시간 1.5 → 0.1초
     word:  { price: [20, 40, 70, 110, 160] },  // 좋은 말 한마디: 합격한 종이마다 +1냥/레벨
+    tough: { price: [25, 50, 80, 120, 170] },  // 단단한 심: 모든 연필 파손율 -2%p/레벨 (최대 -10%p, 0% 밑으로는 안 내려감)
   };
+  const breakRate = g => Math.max(0, PENCILS[g].p - 0.02 * lv('tough'));
   const SKILL_MAX = 5, CLOCK_SEC = 4, SWAP_BY_LV = [1.5, 1.2, 0.9, 0.6, 0.3, 0.1];
   const lv = k => (S.skills && S.skills[k]) || 0;
   const swapMs = () => SWAP_BY_LV[lv('hand')] * 1000; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
@@ -143,7 +145,7 @@
   function planBreaks() {
     if (!sheet || S.mode !== 'stage' || S.hand === null) return;
     const done = sheet.ink / sheet.len, left = Math.max(0, Math.round(sheet.chars * (1 - done)));
-    const p = PENCILS[S.hand].p * BREAK_PER_CHAR, at = [];
+    const p = breakRate(S.hand) * BREAK_PER_CHAR, at = [];
     for (let i = 0; i < left; i++) if (Math.random() < p) at.push(sheet.ink + (sheet.len - sheet.ink) * (0.05 + Math.random() * 0.9));
     sheet.breaks = at.sort((a, b) => a - b); sheet.breakAt = sheet.breaks.shift() ?? Infinity;
   }
@@ -301,7 +303,7 @@
     PENCILS.forEach((pc, g) => {
       const own = S.spares[g] + (S.hand === g ? ` · ${t('inHand')}` : '');
       const icon = ICONS[g] ? pencilPic(g) : '';
-      h += `<tr><td>${icon}${names[g]}</td><td>${Math.round(pc.p * 100)}%</td><td>${pc.price}</td><td>${own}</td><td>
+      h += `<tr><td>${icon}${names[g]}</td><td>${Math.round(breakRate(g) * 100)}%${breakRate(g) < pc.p ? ` <small class="was">${Math.round(pc.p * 100)}%</small>` : ''}</td><td>${pc.price}</td><td>${own}</td><td>
         <button data-buy="${g}" ${S.money < pc.price ? 'disabled' : ''}>${t('buy')}</button>
         <button data-use="${g}" ${S.spares[g] && S.hand !== g ? '' : 'disabled'}>${t('use')}</button></td></tr>`;
     });
@@ -312,7 +314,7 @@
     let h = `<tr><th></th><th>${t('skillEffect')}</th><th>${t('skillLevel')}</th><th>${t('price')}</th><th></th></tr>`;
     for (const k of Object.keys(SKILLS)) {
       const l = lv(k), max = l >= SKILL_MAX, price = SKILLS[k].price[l];
-      const eff = v => (k === 'clock' ? `+${v * CLOCK_SEC}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : `+${v}`);
+      const eff = v => (k === 'clock' ? `+${v * CLOCK_SEC}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `-${v * 2}%` : `+${v}`);
       const desc = `${t('sk_' + k + '_d')}<br><small>${eff(l)}${max ? '' : ' → ' + eff(l + 1)}</small>`;
       const dots = '●'.repeat(l) + '○'.repeat(SKILL_MAX - l);
       h += `<tr><td class="skname">${t('sk_' + k)}</td><td class="skdesc">${desc}</td><td class="dots">${dots}</td><td>${max ? '—' : price}</td>
@@ -325,7 +327,7 @@
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.skill) {
       const k = b.dataset.skill, l = lv(k); if (l >= SKILL_MAX || S.money < SKILLS[k].price[l]) return;
-      S.money -= SKILLS[k].price[l]; S.skills = S.skills || { clock: 0, hand: 0, word: 0 }; S.skills[k] = l + 1;
+      S.money -= SKILLS[k].price[l]; S.skills = S.skills || {}; S.skills[k] = l + 1;
       if (k === 'clock' && S.running) S.bonusTime = (S.bonusTime || 0) + CLOCK_SEC; // 단계 도중에 사면 지금 단계에도 바로 +4초
     } else if (b.dataset.buy) {
       const g = +b.dataset.buy; if (S.money < PENCILS[g].price) return;
