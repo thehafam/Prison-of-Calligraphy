@@ -6,18 +6,20 @@
   // 필기구: 파손 확률 7%p씩 감소(마지막은 0%), 가격 3배씩
   const PENCILS = [0.40, 0.33, 0.26, 0.19, 0.12, 0].map((p, i) => ({ p, price: 10 * 3 ** i }));
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
-  // tier: letter 낱자 / word1 쉬운 단어 1(영어 3자·한글 한 글자) / word2 단어 2(영어 4~5자·한글 두 글자) / word3 단어 3(영어 6자·한글 받침) / word4 단어 4(영어 7자 이상·한글 겹받침·이중모음). 단어 단계 시간·장수는 [임시]
+  // tier: letter 낱자 / word1 쉬운 단어 1(영어 3자·한글 한 글자) / word2 단어 2(영어 4~5자·한글 두 글자) / word3 단어 3(영어 6자·한글 받침) / word4 단어 4(영어 7자 이상·한글 겹받침·이중모음) / sent1 짧은 문장(두세 단어). 단어 단계 시간·장수는 [임시]
   // 1~4단계는 두 단계씩 같은 묶음, 5단계부터는 한 단계마다 오름 (사용자 확정)
   const STAGES = [{ time: 30, quota: 4, tier: 'letter' }, { time: 30, quota: 5, tier: 'letter' },
     { time: 40, quota: 4, tier: 'word1' }, { time: 40, quota: 5, tier: 'word1' },
     { time: 50, quota: 4, tier: 'word2' }, { time: 60, quota: 4, tier: 'word3' },
-    { time: 70, quota: 4, tier: 'word4', guide: false }];
+    { time: 70, quota: 4, tier: 'word4', guide: false },
+    { time: 80, quota: 3, tier: 'sent1', guide: false }];
   // 난이도가 오를 때 교도관의 설명 (guide: false = 7단계부터 획 순서 화살표·번호를 지움)
   const TIER_TALK = {
     word1: ['up_intro1', 'up_word1'],
     word2: ['up_intro2', 'up_word2'],
     word3: ['up_intro3', 'up_word3'],
     word4: ['up_intro4', 'up_word4', 'up_noguide1', 'up_noguide2'],
+    sent1: ['up_intro5', 'up_sent1'],
   };
   const PASS = 90;
   const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 4종은 이미지 오면 추가)

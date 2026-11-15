@@ -106,8 +106,11 @@
   const has = c => !!(GLYPHS.ko[c] || PAIR[c]);
   const canBuild = ch => { const { c, v, j } = parts(ch); return has(c) && !!VOWELS[v] && (!j || has(j)); };
   // 단어: 글자(획 묶음)를 가로로 늘어놓고 종이에 맞게 줄임. cy = 글자 칸 안에서 세로 가운데
+  const SPACE = 26; // 띄어쓰기 폭 (글자 칸 기준)
   function buildRow(glyphs, gap, cy, k) {
-    const parts = glyphs.map(g => { const xs = g.flat().map(p => p[0]); return { g, x0: Math.min(...xs), w: Math.max(...xs) - Math.min(...xs) }; });
+    const parts = glyphs.map(g => {
+      if (!g) return { g: [], x0: 0, w: SPACE }; // 띄어쓰기: 빈 자리
+      const xs = g.flat().map(p => p[0]); return { g, x0: Math.min(...xs), w: Math.max(...xs) - Math.min(...xs) }; });
     const W = (parts.reduce((a, p) => a + p.w, 0) + gap * (parts.length - 1)) * k, w = Math.max(100, W + 20);
     let x = (w - W) / 2;
     const oy = 50 - cy * k, tpl = [];
@@ -119,8 +122,12 @@
   }
   // 글씨 크기는 언어마다 하나로 고정 (사용자 확정): 한글끼리·영어끼리 낱자든 단어든 같은 크기, 길면 종이만 늘어남
   const EN_K = 0.75, KO_K = 0.6;
-  const buildWord = w => buildRow([...w].map(ch => GLYPHS.en[ch]), 12, 55, EN_K);
-  const buildKoWord = w => buildRow([...w].map(ch => (GLYPHS.ko[ch] ? GLYPHS.ko[ch] : buildSyllable(ch))), 10, 50, KO_K); // 낱자 자음은 음절 칸 그대로
+  const SENT = 0.85; // 문장은 단어보다 조금 작게 (문장 단계 안에서는 늘 같은 크기)
+  const DOT = { en: [[[50, 78], [50, 80.5]]], ko: [[[50, 84], [50, 86.5]]] }; // 마침표
+  const glyphOf = (lang, ch) => (ch === ' ' ? null : ch === '.' ? DOT[lang] : GLYPHS[lang][ch] || buildSyllable(ch));
+  const isSentence = key => /[ .]/.test(key);
+  const buildWord = w => buildRow([...w].map(ch => glyphOf('en', ch)), 12, 55, EN_K * (isSentence(w) ? SENT : 1));
+  const buildKoWord = w => buildRow([...w].map(ch => glyphOf('ko', ch)), 10, 50, KO_K * (isSentence(w) ? SENT : 1)); // 낱자 자음은 음절 칸 그대로
   // 종이 한 장의 글자: 낱자 / 한글 음절 / 영어 단어 → { tpl, k(크기 비율: 선 굵기·허용 거리에 씀) }
   function build(lang, key) {
     return lang === 'ko' ? buildKoWord(key) : buildWord(key);
@@ -159,6 +166,13 @@
         '대답', '매일', '뒤뜰', '열쇠', '쇠사슬', '원숭이', '꽃잎', '빵집', '쓰레기', '찌개'],
       en: ['library', 'freedom', 'whisper', 'journey', 'kitchen', 'picture', 'monster', 'morning', 'captain', 'silence', 'lantern', 'chapter',
         'mystery', 'prisoner', 'notebook', 'alphabet', 'sentence', 'midnight', 'knowledge', 'strength', 'beautiful', 'calligraphy'],
+    },
+    // 짧은 문장: 두세 단어 (띄어쓰기 자리는 비우고 마침표까지)
+    sent1: {
+      ko: ['밥 먹자.', '잘 자요.', '비가 온다.', '집에 가자.', '꿈을 꾼다.', '손이 아프다.', '시간이 없다.', '글씨를 쓴다.', '다시 써라.', '빨리 써라.',
+        '문이 열렸다.', '해가 진다.', '눈이 온다.', '나는 쓴다.', '조용히 해.', '펜을 들어라.', '물 좀 줘.', '불이 꺼졌다.', '밤이 깊다.', '숨을 쉬어라.'],
+      en: ['go home.', 'eat well.', 'be quiet.', 'time is up.', 'keep going.', 'write it down.', 'we are tired.', 'sit down.', 'hold the pen.', 'try again.',
+        'no mistakes.', 'stay awake.', 'look closer.', 'night falls.', 'rain is cold.', 'ink runs dry.', 'you may rest.', 'hands up.'],
     },
   };
   const pick = (tier = 'letter') => {

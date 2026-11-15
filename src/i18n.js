@@ -54,6 +54,8 @@
       up_word4: 'Double finals like ㄺ and ㄵ, compound vowels like ㅐ, ㅔ and ㅙ. English words of seven letters or more.',
       up_noguide1: 'And one more thing. From now on, there are no arrows. No numbers.',
       up_noguide2: 'Your hand should remember the stroke order by now. Get it wrong, and your score will suffer for it.',
+      up_intro5: 'Words alone have begun to bore the esteemed ones. Time for sentences.',
+      up_sent1: 'Short ones, for now — two or three words. Leave the spaces empty, and do not forget the period.',
       pencils: ['Shoddy Pencil', 'Pencil', 'Decent Pencil', 'Fairly Good Pencil', 'Fine Pencil', 'Unbreakable Pencil'],
     },
     ko: {
@@ -109,6 +111,8 @@
       up_word4: 'ㄺ, ㄵ 같은 겹받침, ㅐ, ㅔ, ㅙ 같은 이중모음이다. 영어는 일곱 글자 이상.',
       up_noguide1: '그리고 하나 더. 이제부터 화살표는 없다. 번호도 없다.',
       up_noguide2: '획 순서쯤은 이제 손이 기억하겠지. 틀리면 그만큼 점수가 깎인다.',
+      up_intro5: '이제 단어만으로는 높으신 분들이 지루해하시는군. 문장이다.',
+      up_sent1: '아직은 짧은 것들이다. 두세 단어. 띄어 쓴 자리는 비워 두고, 마침표도 잊지 마라.',
       pencils: ['볼품없는 연필', '연필', '괜찮은 연필', '제법 좋은 연필', '고급연필', '깨지지 않은 연필'],
     },
   };
