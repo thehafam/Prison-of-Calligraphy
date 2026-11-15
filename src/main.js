@@ -304,13 +304,13 @@
     PC.tutorial.run(); // 새 게임은 반드시 튜토리얼부터
   }
   function startStage() {
-    // 묶음(tier)이 바뀌는 단계에 처음 들어서면: 새 난이도 예시 종이를 띄우고 교도관이 설명한 뒤 시작 (시간은 그 뒤부터)
+    // 묶음(tier)이 바뀌는 단계에 처음 들어서면: 교도관이 새 난이도를 설명한 뒤 시작 (종이 없이, 시간은 그 뒤부터)
     const def = stageDef(), prev = STAGES[S.stage - 1];
     if (prev && prev.tier !== def.tier && S.announced !== def.tier) {
       S.announced = def.tier;
       Object.assign(S, { mode: 'stage', running: false, stack: [], timeLeft: def.time });
       $('stack').innerHTML = ''; show('game'); $('controls').style.visibility = 'hidden';
-      newSheet({ tier: def.tier }); hud();
+      sheet = null; $('paperWrap').style.visibility = 'hidden'; hud(); // 설명하는 동안 종이는 나오지 않음 (사용자 확정)
       return PC.tutorial.talk(TIER_TALK[def.tier] || [], startStage);
     }
     Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: stageDef().time, running: true, busy: false });
