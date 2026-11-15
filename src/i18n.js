@@ -66,6 +66,11 @@
       up_noguide2: 'Your hand should remember the stroke order by now. Get it wrong, and your score will suffer for it.',
       up_intro5: 'Words alone have begun to bore the esteemed ones. Time for sentences.',
       up_sent1: 'Short ones, for now — two or three words. Leave the spaces empty, and do not forget the period.',
+      up_intro6: 'The esteemed ones want longer lines now.',
+      up_sent2: 'Four or five words, all on one line. Keep your hand steady to the very end.',
+      up_intro7: 'This is the last request.',
+      up_sent3: 'Two lines on a single sheet. The letters are smaller, so mind every stroke.',
+      up_last: 'Finish this, and the esteemed ones will be satisfied... for now.',
       pencils: ['Shoddy Pencil', 'Pencil', 'Decent Pencil', 'Fairly Good Pencil', 'Fine Pencil', 'Unbreakable Pencil'],
     },
     ko: {
@@ -133,6 +138,11 @@
       up_noguide2: '획 순서쯤은 이제 손이 기억하겠지. 틀리면 그만큼 점수가 깎인다.',
       up_intro5: '이제 단어만으로는 높으신 분들이 지루해하시는군. 문장이다.',
       up_sent1: '아직은 짧은 것들이다. 두세 단어. 띄어 쓴 자리는 비워 두고, 마침표도 잊지 마라.',
+      up_intro6: '높으신 분들이 이제 더 긴 글을 원하신다.',
+      up_sent2: '네다섯 단어를 한 줄에. 끝까지 손이 흔들리지 않게 해라.',
+      up_intro7: '이번이 마지막 주문이다.',
+      up_sent3: '종이 한 장에 두 줄이다. 글씨가 작아졌으니 한 획 한 획 조심해라.',
+      up_last: '이것만 끝내면 높으신 분들도 만족하시겠지... 당분간은.',
       pencils: ['볼품없는 연필', '연필', '괜찮은 연필', '제법 좋은 연필', '고급연필', '깨지지 않은 연필'],
     },
   };

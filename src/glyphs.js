@@ -135,13 +135,13 @@
   const canBuild = ch => { const { c, v, j } = parts(ch); return has(c) && !!VOWELS[v] && (!j || has(j)); };
   // 단어: 글자(획 묶음)를 가로로 늘어놓고 종이에 맞게 줄임. cy = 글자 칸 안에서 세로 가운데
   const SPACE = 26; // 띄어쓰기 폭 (글자 칸 기준)
-  function buildRow(glyphs, gap, cy, k) {
+  function buildRow(glyphs, gap, cy, k, yc = 50) {
     const parts = glyphs.map(g => {
       if (!g) return { g: [], x0: 0, w: SPACE }; // 띄어쓰기: 빈 자리
       const xs = g.flat().map(p => p[0]); return { g, x0: Math.min(...xs), w: Math.max(...xs) - Math.min(...xs) }; });
     const W = (parts.reduce((a, p) => a + p.w, 0) + gap * (parts.length - 1)) * k, w = Math.max(100, W + 20);
     let x = (w - W) / 2;
-    const oy = 50 - cy * k, tpl = [];
+    const oy = yc - cy * k, tpl = [];
     for (const p of parts) {
       for (const st of p.g) tpl.push(st.map(([px, py]) => [x + (px - p.x0) * k, oy + py * k]));
       x += (p.w + gap) * k;
@@ -157,7 +157,19 @@
   const buildWord = w => buildRow([...w].map(ch => glyphOf('en', ch)), 12, 55, EN_K * (isSentence(w) ? SENT : 1));
   const buildKoWord = w => buildRow([...w].map(ch => glyphOf('ko', ch)), 10, 50, KO_K * (isSentence(w) ? SENT : 1)); // 낱자 자음은 음절 칸 그대로
   // 종이 한 장의 글자: 낱자 / 한글 음절 / 영어 단어 → { tpl, k(크기 비율: 선 굵기·허용 거리에 씀) }
+  // 두 줄 문장 (10단계): 줄마다 만들어 위아래로 쌓음. 글씨는 단어의 0.6배 (사용자 허락: 문장부터 조금씩 작게)
+  const LINES2 = 0.6;
+  function buildLines(lang, key) {
+    const k = (lang === 'ko' ? KO_K : EN_K) * LINES2, lineH = (lang === 'ko' ? 100 : 82) * k, gapY = 6;
+    const rows = key.split('\n').map((line, i, all) => {
+      const yc = 50 + (i - (all.length - 1) / 2) * (lineH + gapY);
+      return lang === 'ko' ? buildRow([...line].map(ch => glyphOf('ko', ch)), 10, 50, k, yc) : buildRow([...line].map(ch => glyphOf('en', ch)), 12, 55, k, yc);
+    });
+    const w = Math.max(...rows.map(r => r.w));
+    return { k, w, tpl: rows.flatMap(r => r.tpl.map(st => st.map(([x, y]) => [x + (w - r.w) / 2, y]))) };
+  }
   function build(lang, key) {
+    if (key.includes('\n')) return buildLines(lang, key);
     return lang === 'ko' ? buildKoWord(key) : buildWord(key);
   }
 
@@ -201,6 +213,23 @@
         '사랑은 꽃이다.', '꿈은 자란다.', '파도가 친다.', '새벽이 온다.', '마음이 따뜻하다.', '숲이 고요하다.', '빗소리가 좋다.', '오늘도 맑음.', '길은 이어진다.', '희망은 남는다.'],
       en: ['Stars are bright.', 'Flowers bloom.', 'The wind sings.', 'Moon over sea.', 'Spring returns.', 'Love is light.', 'Dreams grow.', 'Time flows.',
         'Waves dance.', 'Hope remains.', 'Quiet morning.', 'Soft rain.', 'Snow in June.', 'Autumn leaves.', 'Kind words.', 'Golden hour.', 'Light breaks.', 'Birds sing.'],
+    },
+    // 9단계: 8단계보다 조금 긴 한 줄 문장 (네다섯 단어)
+    sent2: {
+      ko: ['별빛이 조용히 내려앉는다.', '바람이 나뭇잎을 흔든다.', '오늘도 해는 다시 뜬다.', '작은 꽃이 길가에 핀다.', '봄비가 창문을 두드린다.',
+        '달빛 아래 강물이 흐른다.', '새벽 공기가 차고 맑다.', '그리운 마음은 늘 따뜻하다.', '눈 덮인 산이 고요하다.', '파도 소리가 멀리 들린다.',
+        '노을이 하늘을 붉게 물들인다.', '구름 사이로 햇살이 비친다.', '푸른 들판에 바람이 분다.', '희망은 언제나 곁에 있다.'],
+      en: ['Soft rain on quiet roofs.', 'Stars whisper in the dark.', 'The river sings at dawn.', 'Hope is a quiet flame.', 'Every dawn brings light.',
+        'Snow rests on silent hills.', 'Gentle waves kiss the shore.', 'Golden fields sway softly.', 'Dreams bloom in the night.', 'Kind words warm the heart.',
+        'The wind carries old songs.', 'Moonlight sleeps on water.'],
+    },
+    // 10단계: 두 줄 문장
+    sent3: {
+      ko: ['달이 뜬다.\n별이 웃는다.', '바람이 분다.\n꽃잎이 날린다.', '비가 그친다.\n하늘이 맑다.', '해가 진다.\n노을이 붉다.', '봄이 온다.\n꽃이 핀다.',
+        '밤이 깊다.\n별이 빛난다.', '파도가 친다.\n바다가 노래한다.', '새벽이 온다.\n어둠이 걷힌다.', '눈이 내린다.\n세상이 고요하다.', '꿈을 꾼다.\n마음이 자란다.'],
+      en: ['The moon rises.\nStars begin to sing.', 'Rain has stopped.\nThe sky is clear.', 'Spring is here.\nFlowers bloom.', 'Night is deep.\nStars shine bright.',
+        'Waves roll in.\nThe sea hums.', 'Dawn arrives.\nDarkness fades.', 'Snow is falling.\nThe world is still.', 'Wind blows softly.\nPetals drift away.',
+        'Hope remains.\nLight returns.', 'The sun sets.\nThe sky turns gold.'],
     },
   };
   // 한글·영어를 반반으로 고르고 그 안에서 무작위. 영어 단어는 3분의 1 확률로 첫 글자를 대문자로 (Sky)

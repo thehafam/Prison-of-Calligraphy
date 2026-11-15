@@ -13,7 +13,8 @@
     { time: 50, quota: 4, tier: 'word1' }, { time: 55, quota: 5, tier: 'word1' },
     { time: 75, quota: 4, tier: 'word2' }, { time: 90, quota: 4, tier: 'word3' },
     { time: 115, quota: 4, tier: 'word4', guide: false },
-    { time: 135, quota: 3, tier: 'sent1', guide: false }];
+    { time: 135, quota: 3, tier: 'sent1', guide: false },
+    { time: 160, quota: 3, tier: 'sent2', guide: false }, { time: 180, quota: 3, tier: 'sent3', guide: false }]; // 9·10단계 [임시: 시간·장수]
   // 난이도가 오를 때 교도관의 설명 (guide: false = 7단계부터 획 순서 화살표·번호를 지움)
   const TIER_TALK = {
     word1: ['up_intro1', 'up_word1'],
@@ -21,6 +22,8 @@
     word3: ['up_intro3', 'up_word3'],
     word4: ['up_intro4', 'up_word4', 'up_noguide1', 'up_noguide2'],
     sent1: ['up_intro5', 'up_sent1'],
+    sent2: ['up_intro6', 'up_sent2'],
+    sent3: ['up_intro7', 'up_sent3', 'up_last'],
   };
   const PASS = 80; // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
@@ -131,7 +134,7 @@
     const { tpl, k, w = 100 } = PC.build(lang, key), g = Math.min(1, Math.max(0.5, k * 1.15)); // g: 작은 글자일수록 선·번호·허용 거리를 줄임
     setPaper(w);
     const guide = S.mode !== 'stage' || stageDef().guide !== false;
-    const chars = [...key].filter(ch => ch !== ' ' && ch !== '.').length;
+    const chars = [...key].filter(ch => ch !== ' ' && ch !== '.' && ch !== '\n').length;
     sheet = { lang, key, tpl, g, w, guide, chars, base: baseOf(tpl), strokes: [], ink: 0, breakAt: Infinity };
     // 파손: 글자 수에 비례해 쓰는 도중 아무 순간에 (planBreaks, 튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
