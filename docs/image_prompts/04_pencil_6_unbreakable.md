@@ -3,11 +3,12 @@
 저장 이름: `assets/pencil_5.jpg`  ·  쓰는 곳: 상점 아이콘
 
 ## 컨셉
-나무가 아닌 금속 몸통의 '부러지지 않는' 연필. 최종 목표다운 묵직함과 약간의 신비감. 이름 그대로 '깨진 적 없는' 물건.
+최종 목표. 부러지지 않는 전설의 연필. 화려함 최고 단계: 휘황찬란한 빛이 감싸고, 무지개빛 후광·빛줄기·별무리가 터지는 만화적 연출
 
 ## 참고 이미지 (Gemini에 함께 첨부)
 - `assets/pencil_1.jpg`의 원본 사진(연필): 구도·조명·책상을 똑같이 맞추기 위해 첨부
-- 첨부하면서 "이 사진과 같은 구도·조명·책상으로, 연필만 아래 설명대로 바꿔 줘"라고 덧붙이면 일관성이 좋아짐
+- 첨부하면서 "이 사진과 같은 구도·책상으로, 연필과 효과는 아래 설명대로 바꿔 줘"라고 덧붙이면 일관성이 좋아짐
+- 등급이 오를수록 화려해짐, 반짝임·후광 같은 만화적 효과 (사용자 확정)
 
 ## 규격
 - 비율 2000×1091(약 11:6, 16:9에 가까움) — 원본 사진과 같게
@@ -17,10 +18,10 @@
 
 ## 프롬프트
 ```
-Photorealistic macro photograph, low camera angle, of a single full-length pencil made entirely of dark brushed steel lying diagonally on a worn, scratched dark wooden desk.
-The solid metal body is heavy and seamless, with subtle hand-engraved arabesque patterns along its length and a smooth rounded steel end; the tip is a sharp cone of dense black graphite set into the steel, flawless and gleaming.
-The tip points toward the lower left, the end toward the upper right; the pencil spans about 65% of the frame width and sits in the center. A faint cold rim light runs along the metal, giving it a quiet, almost mythical presence.
-Shallow depth of field: in the blurred background an old open notebook, a ceramic mug holding pens, and soft daylight from a window on the left.
-Muted, slightly desaturated cinematic color grading, fine film grain.
-No text, no letters, no brand name, no logo, no watermark anywhere on the pencil or in the image.
+Semi-realistic illustration with spectacular cartoon effects, low camera angle, of a single legendary full-length pencil floating just above a worn, scratched dark wooden desk.
+The pencil has a body of polished white-gold and crystal, engraved with flowing arabesque patterns, a radiant diamond-like cap, and a flawless tip of shimmering black graphite that seems to hold starlight.
+It is wrapped in dazzling, brilliant light: a blazing white-gold glow with a prismatic rainbow halo, divine light rays bursting outward in every direction, a comic-style starburst behind it, swirling ribbons of light, and a shower of glittering stars and sparkles. The light spills over the desk and casts colorful reflections.
+The tip points toward the lower left, the cap end toward the upper right; the pencil spans about 65% of the frame width and sits in the center. Awe-inspiring, mythical, the ultimate treasure.
+In the heavily blurred background, an old open notebook and a ceramic mug, overwhelmed by the light.
+No text, no letters, no brand name, no logo, no watermark anywhere in the image.
 ```

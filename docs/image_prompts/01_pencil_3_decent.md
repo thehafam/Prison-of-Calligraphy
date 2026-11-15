@@ -3,11 +3,12 @@
 저장 이름: `assets/pencil_2.jpg`  ·  쓰는 곳: 상점 아이콘
 
 ## 컨셉
-볼품없는 연필(칠이 벗겨진 몽당연필) → 연필(깨끗한 몽당연필) 다음 단계. 처음으로 '제 길이'를 가진 새 연필.
+볼품없는 연필 → 연필 다음 단계. 처음으로 '제 길이'를 가진 새 연필. 화려함 1단계: 반짝이는 별 몇 개
 
 ## 참고 이미지 (Gemini에 함께 첨부)
 - `assets/pencil_1.jpg`의 원본 사진(연필): 구도·조명·책상을 똑같이 맞추기 위해 첨부
-- 첨부하면서 "이 사진과 같은 구도·조명·책상으로, 연필만 아래 설명대로 바꿔 줘"라고 덧붙이면 일관성이 좋아짐
+- 첨부하면서 "이 사진과 같은 구도·책상으로, 연필과 효과는 아래 설명대로 바꿔 줘"라고 덧붙이면 일관성이 좋아짐
+- 등급이 오를수록 화려해짐, 반짝임·후광 같은 만화적 효과 (사용자 확정)
 
 ## 규격
 - 비율 2000×1091(약 11:6, 16:9에 가까움) — 원본 사진과 같게
@@ -17,10 +18,11 @@
 
 ## 프롬프트
 ```
-Photorealistic macro photograph, low camera angle, of a single full-length yellow hexagonal wooden pencil lying diagonally on a worn, scratched dark wooden desk.
-The pencil is new and intact: smooth glossy yellow paint without chips, freshly sharpened cedar tip with a clean graphite point, a plain brass ferrule and a light pink eraser.
+Semi-realistic illustration with a touch of cartoon flair, low camera angle, of a single full-length yellow hexagonal wooden pencil lying diagonally on a worn, scratched dark wooden desk.
+The pencil is new and intact: smooth glossy yellow paint, freshly sharpened cedar tip with a clean graphite point, a shiny brass ferrule and a light pink eraser.
+A few small cartoon-style four-pointed sparkle stars twinkle along its body, and a bright glossy highlight streak runs down its length.
 The tip points toward the lower left, the eraser end toward the upper right; the pencil spans about 65% of the frame width and sits in the center.
 Shallow depth of field: in the blurred background an old open notebook, a ceramic mug holding pens, and soft daylight from a window on the left.
-Muted, slightly desaturated cinematic color grading, warm natural light, fine film grain.
-No text, no letters, no brand name, no logo, no watermark anywhere on the pencil or in the image.
+Warm, slightly desaturated colors, soft natural light.
+No text, no letters, no brand name, no logo, no watermark anywhere in the image.
 ```
