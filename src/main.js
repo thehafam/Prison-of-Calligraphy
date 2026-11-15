@@ -309,10 +309,13 @@
     }
     return `<span class="pic g${g}"><img class="pencil-icon" src="${ICONS[g]}" alt="">${stars}</span>`;
   }
-  function openShop() { renderShop(); $('shop').classList.remove('hidden'); }
+  function openShop() { $('shop').classList.remove('hidden'); renderShop(); }
   function renderShop() {
     $('shopMoney').innerHTML = `<img class="coin" src="assets/coin.png" alt=""> ${fmtMoney(S.money)} ${t('money')}`;
-    document.querySelectorAll('#shopTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === (S.shopTab || 'items')));
+    document.querySelectorAll('#shopTabs button').forEach(b => {
+      b.classList.toggle('on', b.dataset.tab === (S.shopTab || 'items'));
+      b.classList.toggle('new', b.dataset.tab === 'items' && !!(S.fresh && S.fresh.length));
+    });
     if (S.shopTab === 'skills') return renderSkills();
     const names = t('pencils');
     let h = `<tr><th></th><th>${t('breakRate')}</th><th>${t('price')}</th><th>${t('owned')}</th><th></th></tr>`;
@@ -325,9 +328,20 @@
         ? `<button data-buy="${g}" ${S.money < pc.price ? 'disabled' : ''}>${t('buy')}</button>
            <button data-use="${g}" ${S.spares[g] && S.hand !== g ? '' : 'disabled'}>${t('use')}</button>`
         : `<span class="lockwhy">${g === 5 ? t('unlockStage', { n: UNBREAK_STAGE + 1 }) : t('unlockTough', { n: unlockLevel(g) })}</span>`;
-      h += `<tr class="${open ? '' : 'locked'}"><td>${icon}${names[g]}</td><td>${rate}</td><td>${pc.price}</td><td>${open ? own : '—'}</td><td>${act}</td></tr>`;
+      const fresh = open && S.fresh && S.fresh.includes(g);
+      h += `<tr class="${open ? (fresh ? 'fresh' : '') : 'locked'}"><td>${icon}${names[g]}${fresh ? ` <span class="newtag">${t('newTag')}</span>` : ''}</td><td>${rate}</td><td>${pc.price}</td><td>${open ? own : '—'}</td><td>${act}</td></tr>`;
     });
     $('shopTable').innerHTML = h;
+    if (!$('shop').classList.contains('hidden')) { S.fresh = []; $('btnShop').classList.remove('new'); } // 아이템 탭을 봤으면 '새로' 표시를 지움
+  }
+  // 새로 해금된 연필 알림 (사용자 요청): 자막 + 상점 버튼·아이템 탭·연필 줄에 '새로' 표시
+  function noteUnlocks(before) {
+    PENCILS.forEach((_, g) => {
+      if (before[g] || !unlocked(g)) return;
+      (S.fresh = S.fresh || []).push(g);
+      toast(t('pencilUnlocked', { name: t('pencils')[g] }));
+    });
+    if (S.fresh && S.fresh.length) { $('btnShop').classList.add('new'); if (!$('shop').classList.contains('hidden')) renderShop(); }
   }
   // 스킬 탭: 이름·설명(지금 → 다음 효과)·레벨 점·가격·업그레이드
   function renderSkills() {
@@ -347,8 +361,9 @@
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.skill) {
       const k = b.dataset.skill, l = lv(k); if (l >= skillMax(k) || S.money < SKILLS[k].price[l]) return;
+      const before = PENCILS.map((_, g) => unlocked(g));
       S.money -= SKILLS[k].price[l]; S.skills = S.skills || {}; S.skills[k] = l + 1;
-      if (k === 'tough') planBreaks();
+      if (k === 'tough') { planBreaks(); noteUnlocks(before); }
       if (k === 'clock' && S.running) S.bonusTime = (S.bonusTime || 0) + CLOCK_SEC; // 단계 도중에 사면 지금 단계에도 바로 +2초
     } else if (b.dataset.buy) {
       const g = +b.dataset.buy; if (S.money < PENCILS[g].price) return;
@@ -415,10 +430,12 @@
   // ---------- 단계 ----------
   const stageDef = () => STAGES[Math.min(S.stage, STAGES.length - 1)];
   function startGame() {
-    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null, skills: { clock: 0, hand: 0, word: 0 }, shopTab: 'items', debt: 0, credits: 0 });
+    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null, skills: { clock: 0, hand: 0, word: 0 }, shopTab: 'items', debt: 0, credits: 0, fresh: [], unbreakNoted: false });
     PC.tutorial.run(); // 새 게임은 반드시 튜토리얼부터
   }
   function startStage() {
+    // 깨지지 않은 연필은 UNBREAK_STAGE단계에 들어서는 순간 해금 → 알림
+    if (S.stage >= UNBREAK_STAGE && !S.unbreakNoted) { S.unbreakNoted = true; const m = S.mode; S.mode = 'stage'; noteUnlocks(PENCILS.map((_, g) => g !== 5 && unlocked(g))); S.mode = m; }
     // 묶음(tier)이 바뀌는 단계에 처음 들어서면: 교도관이 새 난이도를 설명한 뒤 시작 (종이 없이, 시간은 그 뒤부터)
     const def = stageDef(), prev = STAGES[S.stage - 1];
     if (prev && prev.tier !== def.tier && S.announced !== def.tier) {

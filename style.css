@@ -160,3 +160,10 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 #shopTable tr.locked td:first-child::before { content: ''; position: absolute; left: calc(.35em + 1.85em * 1.4); top: 50%; width: 1.5em; height: 1.5em; transform: translate(-50%, -50%); z-index: 1;
   background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0 1 10 0v3' fill='none' stroke='%23e8dcc0' stroke-width='2.2'/%3E%3Crect x='4.5' y='10' width='15' height='11' rx='2' fill='%23e8dcc0'/%3E%3Ccircle cx='12' cy='15' r='1.7' fill='%23333'/%3E%3C/svg%3E"); }
 .lockwhy { font-size: .85em; color: #b9a57f; white-space: nowrap; }
+
+/* 새로 해금된 연필 알림: 상점 버튼·아이템 탭·연필 줄 */
+#btnShop.new, #shopTabs button.new { box-shadow: 0 0 0 2px #e8c46a, 0 0 14px #e8c46a; animation: newPulse 1.2s ease-in-out infinite; }
+#shopTable tr.fresh td { background: rgba(232, 196, 106, .14); }
+.newtag { font-size: .7em; padding: .05em .4em; border-radius: .3em; background: #c9a35a; color: #2a1d10; vertical-align: middle; }
+@keyframes newPulse { 50% { box-shadow: 0 0 0 2px #e8c46a, 0 0 4px #e8c46a; } }
+@media (prefers-reduced-motion: reduce) { #btnShop.new, #shopTabs button.new { animation: none; } }
