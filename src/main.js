@@ -191,6 +191,16 @@
   }
   function bestSpare() { for (let g = PENCILS.length - 1; g >= 0; g--) if (S.spares[g] > 0) return g; return -1; }
 
+  // 연필 아이콘 + 반짝임 애니메이션 (등급이 높을수록 별이 많고 빛이 강함, 볼품없는 연필·연필은 효과 없음)
+  const TWINKLES = [0, 0, 3, 4, 6, 9];
+  function pencilPic(g) {
+    let stars = '';
+    for (let i = 0; i < TWINKLES[g]; i++) {
+      const x = 12 + ((i * 37 + g * 11) % 78), y = 10 + ((i * 53 + g * 7) % 70), d = ((i * 0.37) % 1.6).toFixed(2);
+      stars += `<i style="left:${x}%;top:${y}%;animation-delay:${d}s"></i>`;
+    }
+    return `<span class="pic g${g}"><img class="pencil-icon" src="${ICONS[g]}" alt="">${stars}</span>`;
+  }
   function openShop() { renderShop(); $('shop').classList.remove('hidden'); }
   function renderShop() {
     $('shopMoney').innerHTML = `<img class="coin" src="assets/coin.png" alt=""> ${S.money} ${t('money')}`;
@@ -198,7 +208,7 @@
     let h = `<tr><th></th><th>${t('breakRate')}</th><th>${t('price')}</th><th>${t('owned')}</th><th></th></tr>`;
     PENCILS.forEach((pc, g) => {
       const own = S.spares[g] + (S.hand === g ? ` · ${t('inHand')}` : '');
-      const icon = ICONS[g] ? `<img class="pencil-icon" src="${ICONS[g]}" alt=""> ` : '';
+      const icon = ICONS[g] ? pencilPic(g) : '';
       h += `<tr><td>${icon}${names[g]}</td><td>${Math.round(pc.p * 100)}%</td><td>${pc.price}</td><td>${own}</td><td>
         <button data-buy="${g}" ${S.money < pc.price ? 'disabled' : ''}>${t('buy')}</button>
         <button data-use="${g}" ${S.spares[g] && S.hand !== g ? '' : 'disabled'}>${t('use')}</button></td></tr>`;

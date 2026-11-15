@@ -32,7 +32,7 @@ button:disabled { opacity: .4; cursor: default; }
 #paper { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; box-shadow: 0 8px 24px #000c; }
 #controls { margin-top: 1vh; }
 #controls button { background: rgba(30, 24, 18, .85); }
-.pencil-icon { height: 2.6em; vertical-align: middle; border-radius: 3px; margin-right: .5em; box-shadow: 0 1px 4px #000a; }
+.pencil-icon { height: 2.6em; vertical-align: middle; border-radius: 3px; box-shadow: 0 1px 4px #000a; }
 
 #scorePop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: min(14vh, 22vw); font-weight: bold; pointer-events: none; opacity: 0; }
 #scorePop.show { animation: pop 1s ease-out; }
@@ -98,3 +98,22 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
   30% { transform: translate(-50%, -50%) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.02); } }
 #btnShop { position: absolute; right: 2vw; bottom: 2.5vh; z-index: 10; display: flex; align-items: center; gap: .4em; padding: .6em 1.3em; background: rgba(30, 24, 18, .9); }
 #shopTable td:first-child { text-align: left; white-space: nowrap; }
+
+/* 연필 아이콘 반짝임: 광택이 지나가고(::after), 후광이 숨 쉬고, 별(i)이 깜빡임 */
+.pic { position: relative; display: inline-block; vertical-align: middle; margin-right: .5em; border-radius: 3px; overflow: hidden; }
+.pic .pencil-icon { display: block; margin: 0; }
+.pic i { position: absolute; width: 9px; height: 9px; margin: -4px; background: #fff6c8; opacity: 0; pointer-events: none;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: twinkle 1.6s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 50% { opacity: 1; transform: scale(1.2) rotate(45deg); } }
+.pic.g2::after, .pic.g3::after, .pic.g4::after, .pic.g5::after { content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%) no-repeat; background-size: 250% 100%; animation: sheen 3s ease-in-out infinite; }
+@keyframes sheen { 0% { background-position: 150% 0; } 60%, 100% { background-position: -100% 0; } }
+.pic.g3 { animation: glowG 2.4s ease-in-out infinite; } .pic.g3 i { background: #c8ffd9; }
+.pic.g4 { animation: glowY 2s ease-in-out infinite; } .pic.g4 i { background: #ffd76a; width: 11px; height: 11px; } .pic.g4::after { animation-duration: 2.2s; }
+.pic.g5 { animation: glowR 1.6s ease-in-out infinite; } .pic.g5 i { width: 13px; height: 13px; animation-duration: 1.1s; }
+.pic.g5::after { animation-duration: 1.5s; background-image: linear-gradient(105deg, transparent 30%, rgba(255,120,200,.4) 42%, rgba(255,255,255,.8) 50%, rgba(120,200,255,.4) 58%, transparent 70%); }
+@keyframes glowG { 50% { box-shadow: 0 0 10px 2px rgba(80, 220, 140, .55); filter: brightness(1.12); } }
+@keyframes glowY { 50% { box-shadow: 0 0 14px 3px rgba(255, 200, 80, .7); filter: brightness(1.18); } }
+@keyframes glowR { 0%, 100% { box-shadow: 0 0 10px 2px rgba(255, 255, 255, .5); filter: brightness(1.05) hue-rotate(0deg); }
+  50% { box-shadow: 0 0 22px 6px rgba(255, 240, 200, .9); filter: brightness(1.3) hue-rotate(25deg); } }
+@media (prefers-reduced-motion: reduce) { .pic, .pic i, .pic::after { animation: none !important; } }
