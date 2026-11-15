@@ -24,11 +24,19 @@
   const PASS = 80; // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
   const baseOf = tpl => Math.max(1, Math.round(tpl.length / 3));
-  const rewardOf = (score, base) => (score >= 100 ? base + 2 : score >= 90 ? base + 1 : score >= PASS ? base : 0);
+  const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word'));
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
   const BREAK_PER_CHAR = 0.25;
   const ICONS = [0, 1, 2, 3, 4, 5].map(g => `assets/pencil_${g}.jpg`); // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
-  const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
+  // 스킬 (상점 스킬 탭, 최대 5레벨, 레벨마다 가격이 오름) [임시: 효과·가격]
+  const SKILLS = {
+    clock: { price: [15, 30, 50, 80, 120] },   // 느린 시계: 단계 시간 +4초/레벨
+    hand:  { price: [10, 20, 35, 55, 80] },    // 빠른 손: 여분으로 바꿔 쥐는 시간 1.5 → 0.1초
+    word:  { price: [20, 40, 70, 110, 160] },  // 좋은 말 한마디: 합격한 종이마다 +1냥/레벨
+  };
+  const SKILL_MAX = 5, CLOCK_SEC = 4, SWAP_BY_LV = [1.5, 1.2, 0.9, 0.6, 0.3, 0.1];
+  const lv = k => (S.skills && S.skills[k]) || 0;
+  const swapMs = () => SWAP_BY_LV[lv('hand')] * 1000; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
   const S = { mode: 'title', stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0],
     timeLeft: 0, stack: [], passed: 0, earned: 0, running: false, busy: false };
@@ -258,7 +266,7 @@
     const best = bestSpare();
     if (best >= 0) {
       S.busy = true;
-      setTimeout(() => { S.spares[best]--; S.busy = false; takePencil(best); toast(t('swapped')); }, SWAP_MS);
+      setTimeout(() => { S.spares[best]--; S.busy = false; takePencil(best); toast(t('swapped')); }, swapMs());
     } else if (S.money >= PENCILS[0].price) {
       setTimeout(() => { toast(t('buyPencil')); openShop(); }, 700);
     } else {
@@ -267,7 +275,7 @@
         toast(t('freePencil')); S.lives--; S.busy = false; takePencil(0);
         if (S.lives > 0) saveGame(); // 단계 도중 연필값으로 잃은 목숨도 바로 저장 (껐다 켜도 되살아나지 않게)
         if (S.lives <= 0) gameOver();
-      }, SWAP_MS);
+      }, swapMs());
     }
     hud();
   }
@@ -286,6 +294,8 @@
   function openShop() { renderShop(); $('shop').classList.remove('hidden'); }
   function renderShop() {
     $('shopMoney').innerHTML = `<img class="coin" src="assets/coin.png" alt=""> ${S.money} ${t('money')}`;
+    document.querySelectorAll('#shopTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === (S.shopTab || 'items')));
+    if (S.shopTab === 'skills') return renderSkills();
     const names = t('pencils');
     let h = `<tr><th></th><th>${t('breakRate')}</th><th>${t('price')}</th><th>${t('owned')}</th><th></th></tr>`;
     PENCILS.forEach((pc, g) => {
@@ -297,9 +307,27 @@
     });
     $('shopTable').innerHTML = h;
   }
+  // 스킬 탭: 이름·설명(지금 → 다음 효과)·레벨 점·가격·업그레이드
+  function renderSkills() {
+    let h = `<tr><th></th><th>${t('skillEffect')}</th><th>${t('skillLevel')}</th><th>${t('price')}</th><th></th></tr>`;
+    for (const k of Object.keys(SKILLS)) {
+      const l = lv(k), max = l >= SKILL_MAX, price = SKILLS[k].price[l];
+      const eff = v => (k === 'clock' ? `+${v * CLOCK_SEC}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : `+${v}`);
+      const desc = `${t('sk_' + k + '_d')}<br><small>${eff(l)}${max ? '' : ' → ' + eff(l + 1)}</small>`;
+      const dots = '●'.repeat(l) + '○'.repeat(SKILL_MAX - l);
+      h += `<tr><td class="skname">${t('sk_' + k)}</td><td class="skdesc">${desc}</td><td class="dots">${dots}</td><td>${max ? '—' : price}</td>
+        <td><button data-skill="${k}" ${max || S.money < price ? 'disabled' : ''}>${max ? t('maxed') : l ? t('upgrade') : t('buy')}</button></td></tr>`;
+    }
+    $('shopTable').innerHTML = h;
+  }
+  document.querySelectorAll('#shopTabs button').forEach(b => { b.onclick = () => { S.shopTab = b.dataset.tab; renderShop(); }; });
   $('shopTable').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.buy) {
+    if (b.dataset.skill) {
+      const k = b.dataset.skill, l = lv(k); if (l >= SKILL_MAX || S.money < SKILLS[k].price[l]) return;
+      S.money -= SKILLS[k].price[l]; S.skills = S.skills || { clock: 0, hand: 0, word: 0 }; S.skills[k] = l + 1;
+      if (k === 'clock' && S.running) S.bonusTime = (S.bonusTime || 0) + CLOCK_SEC; // 단계 도중에 사면 지금 단계에도 바로 +4초
+    } else if (b.dataset.buy) {
       const g = +b.dataset.buy; if (S.money < PENCILS[g].price) return;
       S.money -= PENCILS[g].price;
       if (S.hand === null && !S.busy) takePencil(g); else S.spares[g]++;
@@ -357,7 +385,7 @@
   // ---------- 단계 ----------
   const stageDef = () => STAGES[Math.min(S.stage, STAGES.length - 1)];
   function startGame() {
-    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null });
+    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null, skills: { clock: 0, hand: 0, word: 0 }, shopTab: 'items' });
     PC.tutorial.run(); // 새 게임은 반드시 튜토리얼부터
   }
   function startStage() {
@@ -370,13 +398,13 @@
       sheet = null; $('paperWrap').style.visibility = 'hidden'; hud(); // 설명하는 동안 종이는 나오지 않음 (사용자 확정)
       return PC.tutorial.talk(TIER_TALK[def.tier] || [], startStage);
     }
-    Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: stageDef().time, running: true, busy: false });
+    Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: stageDef().time + lv('clock') * CLOCK_SEC, running: true, busy: false, bonusTime: 0 });
     $('stack').innerHTML = ''; $('controls').style.visibility = '';
     show('game'); newSheet(); hud();
     const t0 = performance.now(), total = S.timeLeft;
     clearInterval(timerId);
     timerId = setInterval(() => {
-      S.timeLeft = Math.max(0, total - (performance.now() - t0) / 1000);
+      S.timeLeft = Math.max(0, total + (S.bonusTime || 0) - (performance.now() - t0) / 1000);
       hud();
       if (S.timeLeft <= 0) endStage();
     }, 100);
@@ -432,7 +460,7 @@
   // status: progress = 이어하기 가능 / ended = 엔딩을 봄(죽음 포함) → 이어하기 보이되 비활성 / 기록 없음 → 이어하기 숨김
   const SAVE_KEY = 'prison_of_calligraphy_save_v1';
   function saveGame(status = 'progress') {
-    const d = { status, stage: S.stage, lives: S.lives, money: S.money, hand: S.hand, spares: S.spares, announced: S.announced || null };
+    const d = { status, stage: S.stage, lives: S.lives, money: S.money, hand: S.hand, spares: S.spares, announced: S.announced || null, skills: S.skills };
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (e) {}
     updateContinue();
   }
@@ -443,7 +471,7 @@
   }
   function continueGame() {
     const sv = loadSave(); if (!sv || sv.status !== 'progress') return;
-    Object.assign(S, { stage: sv.stage, lives: sv.lives, money: sv.money, hand: sv.hand ?? 0, spares: sv.spares, announced: sv.announced, mode: 'stage' });
+    Object.assign(S, { stage: sv.stage, lives: sv.lives, money: sv.money, hand: sv.hand ?? 0, spares: sv.spares, announced: sv.announced, skills: sv.skills || { clock: 0, hand: 0, word: 0 }, mode: 'stage' });
     if (S.hand === null && !S.spares.some(n => n)) S.hand = 0; // 저장 때 손이 비어 있었으면 볼품없는 연필 하나
     startStage();
   }

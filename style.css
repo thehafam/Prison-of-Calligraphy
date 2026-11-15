@@ -139,3 +139,12 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 #penCursor.g4 { filter: drop-shadow(2px 4px 3px rgba(0,0,0,.45)) drop-shadow(0 0 6px rgba(255,200,80,.85)); }
 #penCursor.g5 { animation: penGlow 1.6s ease-in-out infinite; }
 @keyframes penGlow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255,255,255,.8)) hue-rotate(0deg); } 50% { filter: drop-shadow(0 0 14px rgba(255,240,200,1)) drop-shadow(0 0 4px rgba(150,200,255,.9)) hue-rotate(40deg); } }
+
+/* 상점 탭 · 스킬 */
+#shopTabs { display: flex; gap: .3em; margin-bottom: .6em; }
+#shopTabs button { margin: 0; padding: .4em 1.6em; opacity: .55; }
+#shopTabs button.on { opacity: 1; background: #5a4630; border-color: #c9a35a; }
+.skname { white-space: nowrap; text-align: left; font-weight: bold; }
+.skdesc { text-align: left; max-width: 22em; font-size: .9em; line-height: 1.35; }
+.skdesc small { color: #d9b24a; }
+.dots { color: #d9b24a; letter-spacing: .15em; white-space: nowrap; }
