@@ -29,7 +29,8 @@
   const fmtMoney = n => (Number.isInteger(n) ? String(n) : n.toFixed(1)); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
   const baseOf = tpl => Math.max(1, Math.round((tpl.length / 3) * 1.5)); // 획 수 ÷ 3 × 1.5 (사용자 확정: 1.5배)
-  const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word'));
+  const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word') + 1); // +1: 외상 도입과 함께 합격 종이마다 1냥 더 (사용자 확정)
+  const CREDIT_BASE = 18;
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
   const BREAK_PER_CHAR = 0.25 * 2 / 3; // 사용자 확정: 예전(1/4)의 2/3
   const ICONS = [0, 1, 2, 3, 4, 5].map(g => `assets/pencil_${g}.jpg`); // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
@@ -289,9 +290,9 @@
     } else {
       S.busy = true;
       setTimeout(() => {
-        toast(t('freePencil')); S.lives--; S.busy = false; takePencil(0);
-        if (S.lives > 0) saveGame(); // 단계 도중 연필값으로 잃은 목숨도 바로 저장 (껐다 켜도 되살아나지 않게)
-        if (S.lives <= 0) gameOver();
+        // 외상 (사용자 확정): 돈이 없으면 교도관이 볼품없는 연필을 외상으로 줌. 외상값 18냥, 외상을 질 때마다 1냥씩 오름(19·20…)
+        S.credits = (S.credits || 0) + 1; const cost = CREDIT_BASE + S.credits - 1; S.debt = (S.debt || 0) + cost;
+        toast(t('credit', { c: cost, d: fmtMoney(S.debt) })); S.busy = false; takePencil(0); saveGame();
       }, swapMs());
     }
     hud();
@@ -414,7 +415,7 @@
   // ---------- 단계 ----------
   const stageDef = () => STAGES[Math.min(S.stage, STAGES.length - 1)];
   function startGame() {
-    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null, skills: { clock: 0, hand: 0, word: 0 }, shopTab: 'items' });
+    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null, skills: { clock: 0, hand: 0, word: 0 }, shopTab: 'items', debt: 0, credits: 0 });
     PC.tutorial.run(); // 새 게임은 반드시 튜토리얼부터
   }
   function startStage() {
@@ -449,9 +450,16 @@
   function judge() {
     settle();
     const q = stageDef().quota, clear = S.passed >= q;
+    // 외상 갚기: 정산한 돈에서 빼 감. 다 못 갚으면 목숨 하나로 대신 치르고 외상은 없어짐
+    let debtLine = '';
+    if (S.debt > 0) {
+      if (S.money >= S.debt) { S.money -= S.debt; debtLine = t('debtPaid', { d: fmtMoney(S.debt) }); }
+      else { S.lives--; debtLine = t('debtLife', { d: fmtMoney(S.debt) }); }
+      S.debt = 0;
+    }
     if (!clear) S.lives--;
     hud();
-    const txt = t('stageResult', { n: S.passed, q, m: fmtMoney(S.earned) }) + (S.bonus ? '\n' + t('bonusLine', { b: fmtMoney(S.bonus) }) : '');
+    const txt = t('stageResult', { n: S.passed, q, m: fmtMoney(S.earned) }) + (S.bonus ? '\n' + t('bonusLine', { b: fmtMoney(S.bonus) }) : '') + (debtLine ? '\n' + debtLine : '');
     if (S.lives <= 0) return gameOver();
     const last = S.stage >= STAGES.length - 1 && clear;
     if (last) saveGame('ended');               // 끝까지 깸 → 이어하기는 보이되 못 누름
@@ -489,7 +497,7 @@
   // status: progress = 이어하기 가능 / ended = 엔딩을 봄(죽음 포함) → 이어하기 보이되 비활성 / 기록 없음 → 이어하기 숨김
   const SAVE_KEY = 'prison_of_calligraphy_save_v1';
   function saveGame(status = 'progress') {
-    const d = { status, stage: S.stage, lives: S.lives, money: S.money, hand: S.hand, spares: S.spares, announced: S.announced || null, skills: S.skills };
+    const d = { status, stage: S.stage, lives: S.lives, money: S.money, hand: S.hand, spares: S.spares, announced: S.announced || null, skills: S.skills, debt: S.debt || 0, credits: S.credits || 0 };
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (e) {}
     updateContinue();
   }
@@ -500,7 +508,7 @@
   }
   function continueGame() {
     const sv = loadSave(); if (!sv || sv.status !== 'progress') return;
-    Object.assign(S, { stage: sv.stage, lives: sv.lives, money: sv.money, hand: sv.hand ?? 0, spares: sv.spares, announced: sv.announced, skills: sv.skills || { clock: 0, hand: 0, word: 0 }, mode: 'stage' });
+    Object.assign(S, { stage: sv.stage, lives: sv.lives, money: sv.money, hand: sv.hand ?? 0, spares: sv.spares, announced: sv.announced, skills: sv.skills || { clock: 0, hand: 0, word: 0 }, debt: sv.debt || 0, credits: sv.credits || 0, mode: 'stage' });
     if (S.hand === null && !S.spares.some(n => n)) S.hand = 0; // 저장 때 손이 비어 있었으면 볼품없는 연필 하나
     startStage();
   }
@@ -565,7 +573,7 @@
     $('hudTime').textContent = S.timeLeft.toFixed(1);
     $('hudQuota').textContent = `${S.stack.length} / ${stageDef().quota}`;
     $('hudLives').textContent = '♥'.repeat(Math.max(0, S.lives)) + '♡'.repeat(Math.max(0, 3 - S.lives));
-    $('hudMoney').textContent = fmtMoney(S.money);
+    $('hudMoney').textContent = fmtMoney(S.money) + (S.debt ? ` (${t('debtShort')} ${fmtMoney(S.debt)})` : '');
     const spare = S.spares.reduce((a, b) => a + b, 0);
     $('hudPencil').textContent = (S.hand === null ? t('noPencil') : t('pencils')[S.hand]) + (spare ? ` (+${spare} ${t('spares')})` : '');
   }
