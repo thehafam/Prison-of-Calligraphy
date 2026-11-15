@@ -60,8 +60,12 @@
     ctx.strokeStyle = '#c4bcae'; ctx.lineWidth = 8 * g;
     for (const s of sheet.tpl) poly(s);
     // 획 순서 화살표·번호
-    const labels = [];
-    if (sheet.guide) sheet.tpl.forEach((s, i) => arrow(s, i + 1, labels, g));
+    if (sheet.guide) {
+      sheet.labels = sheet.labels || placeLabels(sheet.tpl, g, sheet.w);
+      const next = Math.min(sheet.tpl.length - 1, cur ? sheet.strokes.length - 1 : sheet.strokes.length); // 지금 쓸 획
+      sheet.tpl.forEach((s, i) => { if (i !== next) arrow(s, i + 1, g, false); });
+      arrow(sheet.tpl[next], next + 1, g, true);
+    }
     // 플레이어 글씨
     ctx.strokeStyle = '#26221d'; ctx.lineWidth = 3.4 * g;
     for (const s of sheet.strokes) {
@@ -70,26 +74,43 @@
     }
   }
   function poly(s) { ctx.beginPath(); s.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.stroke(); }
-  function arrow(s, n, labels, g) {
-    ctx.strokeStyle = '#b8352b'; ctx.lineWidth = 0.7 * g; poly(s);
-    const a = s[s.length - 2], b = s[s.length - 1], ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
-    ctx.fillStyle = '#b8352b'; ctx.beginPath();
-    ctx.moveTo(b[0] + Math.cos(ang) * 2.5 * g, b[1] + Math.sin(ang) * 2.5 * g);
-    ctx.lineTo(b[0] + Math.cos(ang + 2.5) * 3 * g, b[1] + Math.sin(ang + 2.5) * 3 * g);
-    ctx.lineTo(b[0] + Math.cos(ang - 2.5) * 3 * g, b[1] + Math.sin(ang - 2.5) * 3 * g);
+  // 획 순서 표시: 획마다 색을 달리하고(화살표·시작점·번호가 같은 색), 시작점에 점 + 번호까지 짧은 선.
+  // 번호는 다른 획 선·번호에서 가장 먼 자리에 둠. 지금 쓸 획은 진하고 크게, 나머지는 흐리게
+  const STROKE_COLORS = ['#c0392b', '#1f6fb2', '#2e8b57', '#c77d0a', '#8e44ad', '#16a2a2', '#b03a74', '#556b2f'];
+  function placeLabels(tpl, g, w) {
+    const pts = tpl.flatMap(s => PC.resample(s, 2)), placed = [], R = 8 * g;
+    return tpl.map(s => {
+      const [x, y] = s[0];
+      let best = null, bestScore = -1;
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2, c = [x + Math.cos(a) * R, y + Math.sin(a) * R];
+        if (c[0] < 4 * g + 2 || c[0] > w - 4 * g - 2 || c[1] < 4 * g + 2 || c[1] > 98 - 4 * g) continue;
+        let d = Infinity;
+        for (const p of pts) d = Math.min(d, Math.hypot(p[0] - c[0], p[1] - c[1]));
+        for (const l of placed) d = Math.min(d, Math.hypot(l[0] - c[0], l[1] - c[1]) * 0.6);
+        if (d > bestScore) { bestScore = d; best = c; }
+      }
+      best = best || [x, y - R]; placed.push(best); return best;
+    });
+  }
+  function arrow(s, n, g, active) {
+    const col = STROKE_COLORS[(n - 1) % STROKE_COLORS.length], [x, y] = s[0], [lx, ly] = sheet.labels[n - 1];
+    ctx.globalAlpha = active ? 1 : 0.6;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = (active ? 0.9 : 0.6) * g; poly(s);
+    const a = s[s.length - 2], b = s[s.length - 1], ang = Math.atan2(b[1] - a[1], b[0] - a[0]), h = active ? 1.25 : 1;
+    ctx.beginPath();
+    ctx.moveTo(b[0] + Math.cos(ang) * 2.5 * g * h, b[1] + Math.sin(ang) * 2.5 * g * h);
+    ctx.lineTo(b[0] + Math.cos(ang + 2.5) * 3 * g * h, b[1] + Math.sin(ang + 2.5) * 3 * g * h);
+    ctx.lineTo(b[0] + Math.cos(ang - 2.5) * 3 * g * h, b[1] + Math.sin(ang - 2.5) * 3 * g * h);
     ctx.fill();
-    // 번호: 시작점 뒤쪽·옆쪽 중 다른 번호와 겹치지 않는 자리
-    const [x, y] = s[0], q = s[Math.min(3, s.length - 1)], L = Math.hypot(q[0] - x, q[1] - y) || 1;
-    const ux = (q[0] - x) / L, uy = (q[1] - y) / L;
-    const cand = [[-ux, -uy], [-uy, ux], [uy, -ux], [-ux - uy, -uy + ux], [-ux + uy, -uy - ux], [ux - uy, uy + ux], [ux + uy, uy - ux]].map(([a, b]) => [x + a * 6 * g, y + b * 6 * g]);
-    const inside = c => c[0] > 5 && c[0] < sheet.w - 5 && c[1] > 5 && c[1] < 95; // 종이 밖으로 나가지 않게
-    const [lx, ly] = cand.find(c => inside(c) && labels.every(l => Math.hypot(l[0] - c[0], l[1] - c[1]) > 6.5 * g)) || cand.find(inside) || cand[0];
-    labels.push([lx, ly]);
-    const dx = lx - x, dy = ly - y;
-    ctx.beginPath(); ctx.arc(x + dx, y + dy, 3 * g, 0, 7); ctx.fillStyle = '#f1e7cf'; ctx.fill();
-    ctx.strokeStyle = '#b8352b'; ctx.lineWidth = 0.5 * g; ctx.stroke();
-    ctx.fillStyle = '#b8352b'; ctx.font = `bold ${4 * g}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(n, x + dx, y + dy + 0.2);
+    ctx.beginPath(); ctx.arc(x, y, 1.3 * g, 0, 7); ctx.fill();                                   // 시작점
+    ctx.lineWidth = 0.4 * g; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(lx, ly); ctx.stroke(); // 번호까지 선
+    const r = (active ? 4.2 : 3.3) * g;
+    ctx.beginPath(); ctx.arc(lx, ly, r, 0, 7); ctx.fill();
+    if (active) { ctx.lineWidth = 0.5 * g; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${r * 1.35}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(n, lx, ly + 0.2 * g);
+    ctx.globalAlpha = 1;
   }
 
   // ---------- 종이 한 장: 글자는 게임 언어와 상관없이 한글·영어가 섞여 나옴 ----------
