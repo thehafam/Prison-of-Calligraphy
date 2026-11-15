@@ -70,11 +70,24 @@
   };
   const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ', JUNG = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
   const syllable = (c, v) => String.fromCharCode(0xac00 + (CHO.indexOf(c) * 21 + JUNG.indexOf(v)) * 28);
-  function buildSyllable(ch) {
-    const n = ch.charCodeAt(0) - 0xac00, c = CHO[Math.floor(n / 588)], v = VOWELS[JUNG[Math.floor((n % 588) / 28)]];
-    const [x0, y0, x1, y1] = v.rect, fit = ([x, y]) => [x0 + ((x - 15) / 70) * (x1 - x0), y0 + ((y - 15) / 70) * (y1 - y0)];
-    return GLYPHS.ko[c].map(st => st.map(fit)).concat(v.s);
+  // 받침(종성): 홑받침만 씀. 받침이 있으면 자음·모음을 위로 줄여 올리고 아래 칸에 받침
+  const JONG = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+  const HORIZ = 'ㅏㅑㅓㅕㅣ';
+  const into = ([x0, y0, x1, y1], c) => GLYPHS.ko[c].map(st => st.map(([x, y]) => [x0 + ((x - 15) / 70) * (x1 - x0), y0 + ((y - 15) / 70) * (y1 - y0)]));
+  function parts(ch) {
+    const n = ch.charCodeAt(0) - 0xac00;
+    return { c: CHO[Math.floor(n / 588)], v: JUNG[Math.floor((n % 588) / 28)], j: JONG[n % 28] };
   }
+  function buildSyllable(ch) {
+    const { c, v, j } = parts(ch), V = VOWELS[v];
+    if (!j) return into(V.rect, c).concat(V.s);
+    const h = HORIZ.includes(v);
+    const cr = h ? [V.rect[0], 8, V.rect[2], 54] : [22, 4, 78, 32];
+    const vs = V.s.map(st => st.map(([x, y]) => [x, h ? 6 + ((y - 12) * 52) / 76 : 36 + ((y - 58) * 22) / 28]));
+    return into(cr, c).concat(vs, into([20, 64, 80, 94], j));
+  }
+  // 만들 수 있는 글자인지 (자음·모음·홑받침 획 데이터가 있는지)
+  const canBuild = ch => { const { c, v, j } = parts(ch); return !!(GLYPHS.ko[c] && VOWELS[v] && (!j || GLYPHS.ko[j])); };
   // 단어: 글자(획 묶음)를 가로로 늘어놓고 종이에 맞게 줄임. cy = 글자 칸 안에서 세로 가운데
   function buildRow(glyphs, gap, cy, maxK) {
     const parts = glyphs.map(g => { const xs = g.flat().map(p => p[0]); return { g, x0: Math.min(...xs), w: Math.max(...xs) - Math.min(...xs) }; });
@@ -114,10 +127,18 @@
       en: ['book', 'tree', 'fish', 'bird', 'rain', 'star', 'moon', 'milk', 'door', 'hand', 'lamp', 'ring', 'wolf', 'frog', 'cake', 'jump', 'king', 'snow',
         'apple', 'bread', 'chair', 'house', 'water', 'light', 'paper', 'stone', 'river', 'smile', 'quiet', 'zebra', 'grape', 'night', 'cloud', 'tiger', 'happy'],
     },
+    // 단어 3: 한글 받침 있는 두 글자 단어 / 영어 6자 단어
+    word3: {
+      ko: ['학교', '선물', '음악', '한국', '사람', '시장', '연필', '친구', '가방', '운동', '수박', '노을', '하늘', '겨울', '여름', '강물', '눈물', '산길',
+        '달빛', '손목', '발목', '밥상', '편지', '마음', '소금', '지붕', '저녁', '아침', '점심', '일기', '연습', '감옥', '교실', '종이', '필통', '탈출',
+        '창문', '촛불', '그림', '동물', '식물', '바람', '구름', '별빛'],
+      en: ['garden', 'window', 'yellow', 'purple', 'orange', 'monkey', 'flower', 'summer', 'winter', 'pencil', 'prison', 'letter', 'writer', 'silver',
+        'jungle', 'puzzle', 'rhythm', 'knight', 'zigzag', 'oxygen', 'quartz', 'jacket', 'wizard', 'frozen', 'shadow'],
+    },
   };
   const pick = (tier = 'letter') => {
     const P = POOLS[tier], all = [...P.ko.map(k => ['ko', k]), ...P.en.map(k => ['en', k])];
     return all[Math.floor(Math.random() * all.length)];
   };
-  window.PC = Object.assign(window.PC || {}, { GLYPHS, POOLS, build, pick });
+  window.PC = Object.assign(window.PC || {}, { GLYPHS, POOLS, build, pick, canBuild });
 })();
