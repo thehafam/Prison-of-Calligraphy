@@ -99,7 +99,7 @@
 - 웹 기술(HTML/JS Canvas)로 만들고 Electron 또는 Tauri로 감싸 Steam 배포 (Steamworks 연동은 출시 단계에서)
 
 ## 코드 구조 (시제품)
-- `index.html` 바로 열면 실행 (빌드 없음). `src/i18n.js` 문구(en/ko, 설정 localStorage) · `src/glyphs.js` 글자 획 데이터(100×100, 획 순서대로) ·
+- `index.html` 바로 열면 실행 (빌드 없음). 웹 배포 묶음: `sh tools/build_web.sh` → `dist/prison-of-calligraphy-web.zip` (dist는 git 제외). Windows(Electron)는 게임 완성 후 (사용자 결정). `src/i18n.js` 문구(en/ko, 설정 localStorage) · `src/glyphs.js` 글자 획 데이터(100×100, 획 순서대로) ·
   `src/score.js` 채점 · `src/main.js` 게임 흐름(타이틀·단계·상점·연필 파손, 튜토리얼 고리 `T`) · `src/tutorial.js` 튜토리얼 대본(async)
 - 문구를 고치면 en·ko 둘 다 고칠 것
 - 글자 만들기 `PC.build(lang, key)`: 낱자 / 한글 음절(자음을 모음 자리 rect에 줄여 넣음, 받침은 아래 칸, 된소리·겹받침은 두 자음을 나란히(PAIR), `canBuild`로 만들 수 있는지 확인) / 단어(buildRow: 글자를 가로로 늘어놓고 줄임). 영어 소문자·대문자 획 데이터 있음
