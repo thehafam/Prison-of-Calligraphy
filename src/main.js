@@ -178,7 +178,11 @@
     cur.push(p); sheet.ink += d; draw();
     if (sheet.ink >= sheet.breakAt) breakPencil();
   });
-  const end = () => { cur = null; };
+  // 마지막 획을 쓰고 떼면 자동 상납 (사용자 확정). 연필이 획 도중 부러져 이어 쓴 획은 세지 않음
+  const end = () => {
+    if (cur && sheet && sheet.strokes.length >= sheet.tpl.length + (sheet.breakCount || 0)) setTimeout(submit, 250);
+    cur = null;
+  };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 
   // ---------- 연필 ----------
@@ -191,6 +195,7 @@
   }
   function breakPencil() {
     showSnap(S.hand);
+    if (cur) sheet.breakCount = (sheet.breakCount || 0) + 1; // 쓰던 획이 끊김 → 이어 쓰는 획 하나 더 허용
     cur = null; sheet.breakAt = Infinity; sheet.breaks = []; S.hand = null; // 새 연필을 쥐면 남은 글자로 다시 정함
     sfxSnap();
     if (S.mode === 'tutorial') { hud(); return T.onBreak && T.onBreak(); }
