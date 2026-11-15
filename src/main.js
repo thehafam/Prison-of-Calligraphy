@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id);
 
   // 필기구: 파손 확률 10%p씩 감소(사용자 확정, 고급연필 5%는 [임시], 깨지지 않은 연필 0%)
-  const PRICES = [15, 30, 45, 110, 200, 350]; // 사용자 확정
+  const PRICES = [15, 25, 35, 70, 120, 300]; // 사용자 확정: 단단한 심 업그레이드로 해금하므로 조금 낮춤 [임시]
   const PENCILS = [0.40, 0.30, 0.20, 0.10, 0.05, 0].map((p, i) => ({ p, price: PRICES[i] }));
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
   // tier: letter 낱자 / word1 쉬운 단어 1(영어 3자·한글 한 글자) / word2 단어 2(영어 4~5자·한글 두 글자) / word3 단어 3(영어 6자·한글 받침) / word4 단어 4(영어 7자 이상·한글 겹받침·이중모음) / sent1 짧은 문장(두세 단어). 단어 단계 시간·장수는 [임시]
@@ -38,10 +38,20 @@
     clock: { price: [15, 30, 50, 80, 120] },   // 느린 시계: 단계 시간 +4초/레벨
     hand:  { price: [10, 20, 35, 55, 80] },    // 빠른 손: 여분으로 바꿔 쥐는 시간 1.5 → 0.1초
     word:  { price: [20, 40, 70, 110, 160] },  // 좋은 말 한마디: 합격한 종이마다 +1냥/레벨
-    tough: { price: [25, 50, 80, 120, 170] },  // 단단한 심: 모든 연필 파손율 -2%p/레벨 (최대 -10%p, 0% 밑으로는 안 내려감)
+    tough: { price: [5, 8, 11, 14, 17, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65] }, // 단단한 심 15레벨: 연필 업그레이드 (아래 TOUGH_R) [임시: 가격]
   };
-  const breakRate = g => Math.max(0, PENCILS[g].p - 0.02 * lv('tough'));
-  const SKILL_MAX = 5, CLOCK_SEC = 4, SWAP_BY_LV = [1.5, 1.2, 0.9, 0.6, 0.3, 0.1];
+  // 단단한 심 = 연필 업그레이드 (사용자 확정): 레벨마다 '지금 가장 좋은 연필'의 파손율이 내려감. 다음 연필의 파손율에 닿으면 그 연필 해금,
+  // 새 연필은 그 값에서 시작해 다시 내려감. 지난 연필은 다음 연필의 원래 파손율에서 멈춤. 최종 목표 = 고급연필 2%
+  //   레벨 0: 40% · 4: 30%(연필) · 8: 20%(괜찮은) · 12: 10%(제법 좋은) · 14: 5%(고급) · 15: 2%
+  const TOUGH_R = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 38]; // 볼품없는 연필 40%에서 줄어든 %p
+  const FLOOR = [0.30, 0.20, 0.10, 0.05, 0.02, 0];  // 연필마다 내려갈 수 있는 바닥 (= 다음 연필의 원래 파손율, 고급연필은 2%)
+  const topRate = () => 0.40 - TOUGH_R[lv('tough')] / 100;
+  const UNBREAK_STAGE = 7; // 깨지지 않은 연필: 8단계에 들어서면 살 수 있음 (사용자 확정)
+  const unlocked = g => g === 0 || (g === 5 ? S.mode === 'stage' && S.stage >= UNBREAK_STAGE : topRate() <= PENCILS[g].p + 1e-9);
+  const unlockLevel = g => TOUGH_R.findIndex(r => 0.40 - r / 100 <= PENCILS[g].p + 1e-9);
+  const breakRate = g => (g === 5 ? 0 : Math.max(FLOOR[g], Math.min(PENCILS[g].p, topRate())));
+  const skillMax = k => SKILLS[k].price.length;
+  const CLOCK_SEC = 4, SWAP_BY_LV = [1.5, 1.2, 0.9, 0.6, 0.3, 0.1];
   const lv = k => (S.skills && S.skills[k]) || 0;
   const swapMs = () => SWAP_BY_LV[lv('hand')] * 1000; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
@@ -308,9 +318,13 @@
     PENCILS.forEach((pc, g) => {
       const own = S.spares[g] + (S.hand === g ? ` · ${t('inHand')}` : '');
       const icon = ICONS[g] ? pencilPic(g) : '';
-      h += `<tr><td>${icon}${names[g]}</td><td>${Math.round(breakRate(g) * 100)}%${breakRate(g) < pc.p ? ` <small class="was">${Math.round(pc.p * 100)}%</small>` : ''}</td><td>${pc.price}</td><td>${own}</td><td>
-        <button data-buy="${g}" ${S.money < pc.price ? 'disabled' : ''}>${t('buy')}</button>
-        <button data-use="${g}" ${S.spares[g] && S.hand !== g ? '' : 'disabled'}>${t('use')}</button></td></tr>`;
+      const open = unlocked(g), pct = v => `${+(v * 100).toFixed(1)}%`;
+      const rate = open ? `${pct(breakRate(g))}${breakRate(g) < pc.p ? ` <small class="was">${pct(pc.p)}</small>` : ''}` : pct(pc.p);
+      const act = open
+        ? `<button data-buy="${g}" ${S.money < pc.price ? 'disabled' : ''}>${t('buy')}</button>
+           <button data-use="${g}" ${S.spares[g] && S.hand !== g ? '' : 'disabled'}>${t('use')}</button>`
+        : `<span class="lockwhy">${g === 5 ? t('unlockStage', { n: UNBREAK_STAGE + 1 }) : t('unlockTough', { n: unlockLevel(g) })}</span>`;
+      h += `<tr class="${open ? '' : 'locked'}"><td>${icon}${names[g]}</td><td>${rate}</td><td>${pc.price}</td><td>${open ? own : '—'}</td><td>${act}</td></tr>`;
     });
     $('shopTable').innerHTML = h;
   }
@@ -318,10 +332,10 @@
   function renderSkills() {
     let h = `<tr><th></th><th>${t('skillEffect')}</th><th>${t('skillLevel')}</th><th>${t('price')}</th><th></th></tr>`;
     for (const k of Object.keys(SKILLS)) {
-      const l = lv(k), max = l >= SKILL_MAX, price = SKILLS[k].price[l];
-      const eff = v => (k === 'clock' ? `+${v * CLOCK_SEC}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `-${v * 2}%` : `+${v}`);
+      const l = lv(k), M = skillMax(k), max = l >= M, price = SKILLS[k].price[l];
+      const eff = v => (k === 'clock' ? `+${v * CLOCK_SEC}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `${+(40 - TOUGH_R[v]).toFixed(1)}%` : `+${v}`);
       const desc = `${t('sk_' + k + '_d')}<br><small>${eff(l)}${max ? '' : ' → ' + eff(l + 1)}</small>`;
-      const dots = '●'.repeat(l) + '○'.repeat(SKILL_MAX - l);
+      const dots = M > 5 ? `${l} / ${M}` : '●'.repeat(l) + '○'.repeat(M - l);
       h += `<tr><td class="skname">${t('sk_' + k)}</td><td class="skdesc">${desc}</td><td class="dots">${dots}</td><td>${max ? '—' : price}</td>
         <td><button data-skill="${k}" ${max || S.money < price ? 'disabled' : ''}>${max ? t('maxed') : l ? t('upgrade') : t('buy')}</button></td></tr>`;
     }
@@ -331,8 +345,9 @@
   $('shopTable').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.skill) {
-      const k = b.dataset.skill, l = lv(k); if (l >= SKILL_MAX || S.money < SKILLS[k].price[l]) return;
+      const k = b.dataset.skill, l = lv(k); if (l >= skillMax(k) || S.money < SKILLS[k].price[l]) return;
       S.money -= SKILLS[k].price[l]; S.skills = S.skills || {}; S.skills[k] = l + 1;
+      if (k === 'tough') planBreaks();
       if (k === 'clock' && S.running) S.bonusTime = (S.bonusTime || 0) + CLOCK_SEC; // 단계 도중에 사면 지금 단계에도 바로 +4초
     } else if (b.dataset.buy) {
       const g = +b.dataset.buy; if (S.money < PENCILS[g].price) return;
