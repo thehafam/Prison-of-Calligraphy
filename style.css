@@ -86,7 +86,7 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* 상점: 창구로 밀려 들어온 쟁반 위에 목록 */
-#shop { background: linear-gradient(rgba(5,4,3,.55), rgba(5,4,3,.8)), #050403 url(assets/shop_tray.jpg) center / cover; }
+#shop { z-index: 9; background: linear-gradient(rgba(5,4,3,.55), rgba(5,4,3,.8)), #050403 url(assets/shop_tray.jpg) center / cover; }
 #shopTable { background: rgba(12, 9, 7, .78); border-radius: 4px; }
 .coin { height: 1.15em; vertical-align: -.22em; }
 /* 연필이 부러지는 순간: 가장자리가 흐려지는 그림이 번쩍 */
@@ -96,3 +96,4 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 #snap.show { animation: snap 1.1s ease-out forwards; }
 @keyframes snap { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.8); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
   30% { transform: translate(-50%, -50%) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.02); } }
+#btnShop { position: absolute; right: 2vw; bottom: 2.5vh; z-index: 10; display: flex; align-items: center; gap: .4em; padding: .6em 1.3em; background: rgba(30, 24, 18, .9); }

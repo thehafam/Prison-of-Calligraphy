@@ -311,7 +311,7 @@
   function gameOver() {
     clearInterval(timerId); S.running = false; S.busy = true; cur = null;
     ['shop', 'result'].forEach(id => $(id).classList.add('hidden'));
-    $('controls').style.visibility = 'hidden'; $('toast').classList.remove('show');
+    $('controls').style.visibility = 'hidden'; $('toast').classList.remove('show'); $('btnShop').classList.add('hidden');
     const wait = ms => new Promise(r => setTimeout(r, ms));
     PC.tutorial.talk(['d_1', 'd_2', 'd_3'], async () => {
       $('hood').classList.remove('hidden'); void $('hood').offsetWidth; $('hood').classList.add('drop');
@@ -336,14 +336,14 @@
   function show(which) {
     const g = which === 'game';
     $('title').classList.toggle('hidden', g);
-    $('deskArea').classList.toggle('hidden', !g);
+    $('deskArea').classList.toggle('hidden', !g); $('btnShop').classList.toggle('hidden', !g);
     $('hud').classList.toggle('hidden', !g || S.mode !== 'stage');
     if (g) fit();
   }
   function toTitle() {
     clearInterval(timerId); S.mode = 'title'; S.running = false; sheet = null;
     $('stack').innerHTML = ''; PC.tutorial.stop(); show('title');
-    ['hood', 'death'].forEach(id => $(id).classList.add('hidden')); $('hood').classList.remove('drop'); S.busy = false;
+    ['hood', 'death', 'shop'].forEach(id => $(id).classList.add('hidden')); $('hood').classList.remove('drop'); S.busy = false;
   }
   function hud() {
     if (S.mode !== 'stage') return;
@@ -392,7 +392,8 @@
     if (S.mode === 'stage' && S.running) newSheet();
     else if (S.mode === 'tutorial' && T.allowDraw) { sheet.strokes = []; sheet.ink = 0; draw(); } // 튜토리얼: 같은 글자를 지우고 다시
   };
-  $('btnShop').onclick = () => { if (S.mode === 'stage' || T.allowShop) openShop(); };
+  // 상점은 연필이 부러지지 않았어도 게임 화면(튜토리얼·단계·대사·정산 중)이면 언제든 열림 (사용자 확정)
+  $('btnShop').onclick = () => { if (S.mode !== 'title' && $('death').classList.contains('hidden')) openShop(); };
   $('btnShopClose').onclick = () => { $('shop').classList.add('hidden'); if (T.onShopClose) T.onShopClose(); };
   $('btnStart').onclick = startGame;
   $('btnDeath').onclick = toTitle;
