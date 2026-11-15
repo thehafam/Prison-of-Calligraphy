@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id);
 
   // 필기구: 파손 확률 7%p씩 감소(마지막은 0%), 가격 3배씩
-  const PRICES = [15, 30, 60, 120, 240, 480]; // 사용자 확정 (예전 10·30·90·270·810·2430)
+  const PRICES = [15, 30, 45, 110, 200, 350]; // 사용자 확정
   const PENCILS = [0.40, 0.33, 0.26, 0.19, 0.12, 0].map((p, i) => ({ p, price: PRICES[i] }));
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
   // tier: letter 낱자 / word1 쉬운 단어 1(영어 3자·한글 한 글자) / word2 단어 2(영어 4~5자·한글 두 글자) / word3 단어 3(영어 6자·한글 받침) / word4 단어 4(영어 7자 이상·한글 겹받침·이중모음) / sent1 짧은 문장(두세 단어). 단어 단계 시간·장수는 [임시]
@@ -14,7 +14,7 @@
     { time: 75, quota: 4, tier: 'word2' }, { time: 90, quota: 4, tier: 'word3' },
     { time: 115, quota: 4, tier: 'word4', guide: false },
     { time: 135, quota: 3, tier: 'sent1', guide: false },
-    { time: 160, quota: 3, tier: 'sent2', guide: false }, { time: 180, quota: 3, tier: 'sent3', guide: false }]; // 9·10단계 [임시: 시간·장수]
+    { time: 200, quota: 3, tier: 'sent2', guide: false }, { time: 220, quota: 3, tier: 'sent3', guide: false }]; // 9·10단계 [임시: 시간·장수]
   // 난이도가 오를 때 교도관의 설명 (guide: false = 7단계부터 획 순서 화살표·번호를 지움)
   const TIER_TALK = {
     word1: ['up_intro1', 'up_word1'],
@@ -27,10 +27,10 @@
   };
   const PASS = 80; // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
-  const baseOf = tpl => Math.max(1, Math.round(tpl.length / 3));
+  const baseOf = tpl => Math.max(1, Math.round((tpl.length / 3) * 1.5)); // 획 수 ÷ 3 × 1.5 (사용자 확정: 1.5배)
   const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word'));
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
-  const BREAK_PER_CHAR = 0.25;
+  const BREAK_PER_CHAR = 0.25 * 2 / 3; // 사용자 확정: 예전(1/4)의 2/3
   const ICONS = [0, 1, 2, 3, 4, 5].map(g => `assets/pencil_${g}.jpg`); // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   // 스킬 (상점 스킬 탭, 최대 5레벨, 레벨마다 가격이 오름) [임시: 효과·가격]
   const SKILLS = {
