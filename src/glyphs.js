@@ -67,13 +67,28 @@
     'ㅜ': { rect: [20, 6, 80, 48], s: [[[14, 62], [86, 62]], [[50, 62], [50, 86]]] },
     'ㅠ': { rect: [20, 6, 80, 48], s: [[[14, 62], [86, 62]], [[38, 62], [38, 86]], [[62, 62], [62, 86]]] },
     'ㅡ': { rect: [20, 10, 80, 56], s: [[[14, 72], [86, 72]]] },
+    // 이중모음: ㅐㅒㅔㅖ는 세로획 둘 / ㅘㅙㅚㅝㅞㅟㅢ는 아래 모음 + 오른쪽 세로획 (자음은 왼쪽 위)
+    'ㅐ': { rect: [6, 18, 52, 82], s: [[[64, 12], [64, 88]], [[64, 48], [78, 48]], [[80, 10], [80, 90]]] },
+    'ㅒ': { rect: [6, 18, 52, 82], s: [[[64, 12], [64, 88]], [[64, 38], [78, 38]], [[64, 60], [78, 60]], [[80, 10], [80, 90]]] },
+    'ㅔ': { rect: [4, 18, 46, 82], s: [[[52, 48], [66, 48]], [[66, 12], [66, 88]], [[80, 10], [80, 90]]] },
+    'ㅖ': { rect: [4, 18, 46, 82], s: [[[52, 38], [66, 38]], [[52, 60], [66, 60]], [[66, 12], [66, 88]], [[80, 10], [80, 90]]] },
+    'ㅘ': { rect: [10, 10, 60, 50], s: [[[36, 56], [36, 70]], [[8, 72], [64, 72]], [[78, 10], [78, 90]], [[78, 48], [90, 48]]] },
+    'ㅙ': { rect: [8, 10, 56, 50], s: [[[32, 56], [32, 70]], [[6, 72], [58, 72]], [[68, 10], [68, 90]], [[68, 48], [80, 48]], [[84, 8], [84, 92]]] },
+    'ㅚ': { rect: [10, 10, 62, 50], s: [[[36, 56], [36, 70]], [[8, 72], [66, 72]], [[80, 10], [80, 90]]] },
+    'ㅝ': { rect: [10, 8, 58, 46], s: [[[8, 56], [60, 56]], [[34, 56], [34, 80]], [[62, 44], [76, 44]], [[78, 10], [78, 90]]] },
+    'ㅞ': { rect: [8, 8, 54, 46], s: [[[6, 56], [54, 56]], [[30, 56], [30, 80]], [[56, 44], [68, 44]], [[70, 10], [70, 90]], [[84, 8], [84, 92]]] },
+    'ㅟ': { rect: [10, 8, 60, 46], s: [[[8, 56], [64, 56]], [[36, 56], [36, 82]], [[80, 10], [80, 90]]] },
+    'ㅢ': { rect: [10, 8, 62, 54], s: [[[8, 66], [66, 66]], [[80, 10], [80, 90]]] },
   };
   const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ', JUNG = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
   const syllable = (c, v) => String.fromCharCode(0xac00 + (CHO.indexOf(c) * 21 + JUNG.indexOf(v)) * 28);
   // 받침(종성): 홑받침만 씀. 받침이 있으면 자음·모음을 위로 줄여 올리고 아래 칸에 받침
   const JONG = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
-  const HORIZ = 'ㅏㅑㅓㅕㅣ';
-  const into = ([x0, y0, x1, y1], c) => GLYPHS.ko[c].map(st => st.map(([x, y]) => [x0 + ((x - 15) / 70) * (x1 - x0), y0 + ((y - 15) / 70) * (y1 - y0)]));
+  const PAIR = { 'ㄲ': 'ㄱㄱ', 'ㄸ': 'ㄷㄷ', 'ㅃ': 'ㅂㅂ', 'ㅆ': 'ㅅㅅ', 'ㅉ': 'ㅈㅈ', 'ㄳ': 'ㄱㅅ', 'ㄵ': 'ㄴㅈ', 'ㄶ': 'ㄴㅎ', 'ㄺ': 'ㄹㄱ',
+    'ㄻ': 'ㄹㅁ', 'ㄼ': 'ㄹㅂ', 'ㄽ': 'ㄹㅅ', 'ㄾ': 'ㄹㅌ', 'ㄿ': 'ㄹㅍ', 'ㅀ': 'ㄹㅎ', 'ㅄ': 'ㅂㅅ' };
+  const into = ([x0, y0, x1, y1], c) => PAIR[c]
+    ? into([x0, y0, x0 + (x1 - x0) * 0.47, y1], PAIR[c][0]).concat(into([x0 + (x1 - x0) * 0.53, y0, x1, y1], PAIR[c][1]))
+    : GLYPHS.ko[c].map(st => st.map(([x, y]) => [x0 + ((x - 15) / 70) * (x1 - x0), y0 + ((y - 15) / 70) * (y1 - y0)]));
   function parts(ch) {
     const n = ch.charCodeAt(0) - 0xac00;
     return { c: CHO[Math.floor(n / 588)], v: JUNG[Math.floor((n % 588) / 28)], j: JONG[n % 28] };
@@ -81,27 +96,30 @@
   function buildSyllable(ch) {
     const { c, v, j } = parts(ch), V = VOWELS[v];
     if (!j) return into(V.rect, c).concat(V.s);
-    const h = HORIZ.includes(v);
-    const cr = h ? [V.rect[0], 8, V.rect[2], 54] : [22, 4, 78, 32];
-    const vs = V.s.map(st => st.map(([x, y]) => [x, h ? 6 + ((y - 12) * 52) / 76 : 36 + ((y - 58) * 22) / 28]));
+    const h = !'ㅗㅛㅜㅠㅡ'.includes(v); // 세로 획이 있는 모음은 통째로 위로 줄임, 아래 모음만 있으면 자음·모음을 위아래로
+    const sq = y => Math.max(4, 6 + ((y - 12) * 52) / 76);
+    const cr = h ? [V.rect[0], sq(V.rect[1]), V.rect[2], sq(V.rect[3])] : [22, 4, 78, 32];
+    const vs = V.s.map(st => st.map(([x, y]) => [x, h ? sq(y) : 36 + ((y - 58) * 22) / 28]));
     return into(cr, c).concat(vs, into([20, 64, 80, 94], j));
   }
   // 만들 수 있는 글자인지 (자음·모음·홑받침 획 데이터가 있는지)
-  const canBuild = ch => { const { c, v, j } = parts(ch); return !!(GLYPHS.ko[c] && VOWELS[v] && (!j || GLYPHS.ko[j])); };
+  const has = c => !!(GLYPHS.ko[c] || PAIR[c]);
+  const canBuild = ch => { const { c, v, j } = parts(ch); return has(c) && !!VOWELS[v] && (!j || has(j)); };
   // 단어: 글자(획 묶음)를 가로로 늘어놓고 종이에 맞게 줄임. cy = 글자 칸 안에서 세로 가운데
-  function buildRow(glyphs, gap, cy, maxK) {
+  function buildRow(glyphs, gap, cy, k) {
     const parts = glyphs.map(g => { const xs = g.flat().map(p => p[0]); return { g, x0: Math.min(...xs), w: Math.max(...xs) - Math.min(...xs) }; });
-    const W = parts.reduce((a, p) => a + p.w, 0) + gap * (parts.length - 1), k = Math.min(maxK, 82 / W);
-    let x = 50 - (W * k) / 2;
+    const W = (parts.reduce((a, p) => a + p.w, 0) + gap * (parts.length - 1)) * k, w = Math.max(100, W + 20);
+    let x = (w - W) / 2;
     const oy = 50 - cy * k, tpl = [];
     for (const p of parts) {
       for (const st of p.g) tpl.push(st.map(([px, py]) => [x + (px - p.x0) * k, oy + py * k]));
       x += (p.w + gap) * k;
     }
-    return { tpl, k };
+    return { tpl, k, w };
   }
-  const buildWord = w => buildRow([...w].map(ch => GLYPHS.en[ch]), 12, 55, 0.8);   // 영어: x높이 44~80, 위아래 15~96
-  const buildKoWord = w => buildRow([...w].map(buildSyllable), 10, 50, 0.6);       // 한글: 음절 칸 0~100
+  // 글씨 크기는 단어 길이와 상관없이 늘 같음 (사용자 확정): 영어 0.75 / 한글 음절 0.5배
+  const buildWord = w => buildRow([...w].map(ch => GLYPHS.en[ch]), 12, 55, 0.75);
+  const buildKoWord = w => buildRow([...w].map(buildSyllable), 10, 50, 0.5);
   // 종이 한 장의 글자: 낱자 / 한글 음절 / 영어 단어 → { tpl, k(크기 비율: 선 굵기·허용 거리에 씀) }
   function build(lang, key) {
     if (GLYPHS[lang][key]) return { tpl: GLYPHS[lang][key], k: 1 };
@@ -134,6 +152,14 @@
         '창문', '촛불', '그림', '동물', '식물', '바람', '구름', '별빛'],
       en: ['garden', 'window', 'yellow', 'purple', 'orange', 'monkey', 'flower', 'summer', 'winter', 'pencil', 'prison', 'letter', 'writer', 'silver',
         'jungle', 'puzzle', 'rhythm', 'knight', 'zigzag', 'oxygen', 'quartz', 'jacket', 'wizard', 'frozen', 'shadow'],
+    },
+    // 단어 4: 한글 겹받침·이중모음이 든 단어 / 영어 7자 이상
+    word4: {
+      ko: ['닭장', '흙길', '읽기', '앉다', '많이', '삶다', '넓이', '여덟', '값진', '없다', '핥다', '읊다', '싫다', '밟다', '젊음', '짧다',
+        '개미', '새벽', '세상', '계단', '과일', '왕관', '돼지', '회색', '외출', '궤도', '위험', '의자', '귀신', '괴물', '사과', '화가', '교회',
+        '대답', '매일', '뒤뜰', '열쇠', '쇠사슬', '원숭이', '꽃잎', '빵집', '쓰레기', '찌개'],
+      en: ['library', 'freedom', 'whisper', 'journey', 'kitchen', 'picture', 'monster', 'morning', 'captain', 'silence', 'lantern', 'chapter',
+        'mystery', 'prisoner', 'notebook', 'alphabet', 'sentence', 'midnight', 'knowledge', 'strength', 'beautiful', 'calligraphy'],
     },
   };
   const pick = (tier = 'letter') => {

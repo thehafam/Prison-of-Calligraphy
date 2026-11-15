@@ -6,11 +6,12 @@
   // 필기구: 파손 확률 7%p씩 감소(마지막은 0%), 가격 3배씩
   const PENCILS = [0.40, 0.33, 0.26, 0.19, 0.12, 0].map((p, i) => ({ p, price: 10 * 3 ** i }));
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
-  // tier: letter 낱자 / word1 쉬운 단어 1(영어 3자·한글 한 글자) / word2 단어 2(영어 4~5자·한글 두 글자) / word3 단어 3(영어 6자·한글 받침 두 글자). 단어 단계 시간·장수는 [임시]
+  // tier: letter 낱자 / word1 쉬운 단어 1(영어 3자·한글 한 글자) / word2 단어 2(영어 4~5자·한글 두 글자) / word3 단어 3(영어 6자·한글 받침) / word4 단어 4(영어 7자 이상·한글 겹받침·이중모음). 단어 단계 시간·장수는 [임시]
   // 1~4단계는 두 단계씩 같은 묶음, 5단계부터는 한 단계마다 오름 (사용자 확정)
   const STAGES = [{ time: 30, quota: 4, tier: 'letter' }, { time: 30, quota: 5, tier: 'letter' },
     { time: 40, quota: 4, tier: 'word1' }, { time: 40, quota: 5, tier: 'word1' },
-    { time: 50, quota: 4, tier: 'word2' }, { time: 60, quota: 4, tier: 'word3' }];
+    { time: 50, quota: 4, tier: 'word2' }, { time: 60, quota: 4, tier: 'word3' },
+    { time: 70, quota: 4, tier: 'word4' }];
   const PASS = 90;
   const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
@@ -24,19 +25,19 @@
   // ---------- 종이 그리기 ----------
   const cv = $('paper'), ctx = cv.getContext('2d');
   function fit() {
-    const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
-    cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
+    const d = window.devicePixelRatio || 1; // 날아오는 중의 변형과 상관없이 실제 크기로
+    cv.width = Math.round(cv.offsetWidth * d); cv.height = Math.round(cv.offsetHeight * d);
     draw();
   }
   window.addEventListener('resize', fit);
 
   function draw() {
-    const u = cv.width / 100;
+    const u = cv.height / 100, W = sheet ? sheet.w : 100; // 높이 100 기준, 폭 W (긴 단어는 가로로 긴 종이)
     ctx.setTransform(u, 0, 0, u, 0, 0);
-    ctx.fillStyle = '#f1e7cf'; ctx.fillRect(0, 0, 100, 100);
-    ctx.strokeStyle = '#8b7a5a'; ctx.lineWidth = 0.6; ctx.strokeRect(4, 4, 92, 92);
+    ctx.fillStyle = '#f1e7cf'; ctx.fillRect(0, 0, W, 100);
+    ctx.strokeStyle = '#8b7a5a'; ctx.lineWidth = 0.6; ctx.strokeRect(4, 4, W - 8, 92);
     ctx.setLineDash([1.5, 1.5]); ctx.strokeStyle = '#c9b996'; ctx.lineWidth = 0.35;
-    ctx.beginPath(); ctx.moveTo(50, 4); ctx.lineTo(50, 96); ctx.moveTo(4, 50); ctx.lineTo(96, 50); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W / 2, 4); ctx.lineTo(W / 2, 96); ctx.moveTo(4, 50); ctx.lineTo(W - 4, 50); ctx.stroke();
     ctx.setLineDash([]);
     if (!sheet) return;
     ctx.lineCap = ctx.lineJoin = 'round';
@@ -67,7 +68,7 @@
     const [x, y] = s[0], q = s[Math.min(3, s.length - 1)], L = Math.hypot(q[0] - x, q[1] - y) || 1;
     const ux = (q[0] - x) / L, uy = (q[1] - y) / L;
     const cand = [[-ux, -uy], [-uy, ux], [uy, -ux], [-ux - uy, -uy + ux], [-ux + uy, -uy - ux], [ux - uy, uy + ux], [ux + uy, uy - ux]].map(([a, b]) => [x + a * 6 * g, y + b * 6 * g]);
-    const inside = c => c[0] > 5 && c[0] < 95 && c[1] > 5 && c[1] < 95; // 종이 밖으로 나가지 않게
+    const inside = c => c[0] > 5 && c[0] < sheet.w - 5 && c[1] > 5 && c[1] < 95; // 종이 밖으로 나가지 않게
     const [lx, ly] = cand.find(c => inside(c) && labels.every(l => Math.hypot(l[0] - c[0], l[1] - c[1]) > 6.5 * g)) || cand.find(inside) || cand[0];
     labels.push([lx, ly]);
     const dx = lx - x, dy = ly - y;
@@ -81,8 +82,9 @@
   function newSheet(opt = {}) {
     let { lang, key } = opt;
     if (!key) [lang, key] = opt.pool ? opt.pool[Math.floor(Math.random() * opt.pool.length)] : PC.pick(opt.tier || stageDef().tier);
-    const { tpl, k } = PC.build(lang, key), g = Math.min(1, Math.max(0.5, k * 1.15)); // g: 작은 글자일수록 선·번호·허용 거리를 줄임
-    sheet = { lang, key, tpl, g, strokes: [], ink: 0, breakAt: Infinity };
+    const { tpl, k, w = 100 } = PC.build(lang, key), g = Math.min(1, Math.max(0.5, k * 1.15)); // g: 작은 글자일수록 선·번호·허용 거리를 줄임
+    setPaper(w);
+    sheet = { lang, key, tpl, g, w, strokes: [], ink: 0, breakAt: Infinity };
     // 파손: 장마다 연필 등급 확률로, 쓰는 도중 아무 순간에 (튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
     if (opt.breakAt) sheet.breakAt = len * opt.breakAt;
@@ -98,6 +100,12 @@
     const vw = innerWidth, vh = innerHeight, k = Math.max(vw / BG.w, vh / BG.h);
     return [(vw - BG.w * k) / 2 + HATCH.x * k, (vh - BG.h * k) / 2 + HATCH.y * k];
   }
+  // 종이 폭: 높이는 늘 같고 폭만 w/100배 (화면보다 넓으면 화면에 맞춰 통째로 줄어듦)
+  function setPaper(w) {
+    const wrap = $('paperWrap');
+    wrap.style.width = `min(${(60 * w) / 100}vh, 94vw)`; wrap.style.aspectRatio = `${w} / 100`;
+    fit();
+  }
   function fly(kind, then) {
     const w = $('paperWrap'), [hx, hy] = hatchPoint();
     w.style.visibility = ''; w.classList.remove('arrive', 'leave'); w.style.transform = '';
@@ -109,7 +117,7 @@
   }
 
   const canDraw = () => (S.mode === 'stage' ? S.running : S.mode === 'tutorial' && T.allowDraw) && S.hand !== null && !S.busy && !flying;
-  function pt(e) { const r = cv.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100]; }
+  function pt(e) { const r = cv.getBoundingClientRect(); return [((e.clientX - r.left) / r.height) * 100, ((e.clientY - r.top) / r.height) * 100]; }
   cv.addEventListener('pointerdown', e => {
     if (!sheet || !canDraw()) return;
     cv.setPointerCapture(e.pointerId);
