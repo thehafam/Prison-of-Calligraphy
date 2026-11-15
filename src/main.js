@@ -214,6 +214,10 @@
       <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#efe3c4"/><stop offset="1" stop-color="#bfa978"/></linearGradient></defs>
       <polygon points="0,12 8,9 8,15" fill="#2e2b28"/><polygon points="8,9 26,3 26,21 8,15" fill="#e3bb8a"/>${body}${end}</svg>`;
   }
+  // Gemini가 검정 배경에 그린 커서 그림을 투명 PNG로 뺀 것 (assets/cursor_{등급}.png, tools/cutout_cursor.py). 없는 등급은 위 코드 그림
+  // tipX·tipY = 그림 속 심 끝, angle = 그림 속 연필 기울기 → -38°가 되게 돌림
+  const CURSOR_IMG = {"5": {"tipX": 0.1, "tipY": 75.9, "angle": -13.0, "w": 195, "h": 81}, "4": {"tipX": 2.3, "tipY": 68.7, "angle": -12.1, "w": 203, "h": 84}, "3": {"tipX": 2.5, "tipY": 68.1, "angle": -12.6, "w": 206, "h": 75}, "2": {"tipX": 0.3, "tipY": 51.5, "angle": -12.3, "w": 196, "h": 52}, "0": {"tipX": 0.3, "tipY": 39.8, "angle": -9.6, "w": 198, "h": 42}};
+  const PEN_TILT = -38, PEN_SCALE = 0.8;
   let penShown = -1;
   function movePen(e) {
     const pen = $('penCursor'), r = cv.getBoundingClientRect();
@@ -222,8 +226,16 @@
       && ['shop', 'result', 'death'].every(id => $(id).classList.contains('hidden'));
     pen.classList.toggle('hidden', !ok); cv.style.cursor = ok ? 'none' : '';
     if (!ok) return;
-    if (penShown !== S.hand) { pen.innerHTML = pencilSVG(S.hand); pen.className = 'g' + S.hand; penShown = S.hand; }
-    pen.style.transform = `translate(${e.clientX}px, ${e.clientY - 13.8}px) rotate(-38deg)${cur ? ' scale(.96)' : ''}`;
+    const m = CURSOR_IMG[S.hand];
+    if (penShown !== S.hand) {
+      pen.className = 'g' + S.hand; penShown = S.hand;
+      if (m) { pen.innerHTML = `<img src="assets/cursor_${S.hand}.png" alt="" width="${m.w * PEN_SCALE}" height="${m.h * PEN_SCALE}">`; pen.style.transformOrigin = `${m.tipX * PEN_SCALE}px ${m.tipY * PEN_SCALE}px`; }
+      else { pen.innerHTML = pencilSVG(S.hand); pen.style.transformOrigin = '0 50%'; }
+    }
+    const press = cur ? ' scale(.96)' : '';
+    pen.style.transform = m
+      ? `translate(${e.clientX - m.tipX * PEN_SCALE}px, ${e.clientY - m.tipY * PEN_SCALE}px) rotate(${PEN_TILT - m.angle}deg)${press}`
+      : `translate(${e.clientX}px, ${e.clientY - 13.8}px) rotate(${PEN_TILT}deg)${press}`;
   }
   addEventListener('pointermove', movePen); addEventListener('pointerdown', movePen); addEventListener('pointerup', movePen);
 

@@ -133,8 +133,8 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 #fadeBlack.on { opacity: 1; pointer-events: auto; }
 
 /* 연필 커서: 심 끝(왼쪽 가운데)을 마우스 위치에 맞추고 비스듬히 */
-#penCursor { position: fixed; left: 0; top: 0; z-index: 20; pointer-events: none; transform-origin: 0 50%; filter: drop-shadow(2px 4px 3px rgba(0,0,0,.45)); }
-#penCursor svg { display: block; }
+#penCursor { position: fixed; left: 0; top: 0; z-index: 20; pointer-events: none; filter: drop-shadow(2px 4px 3px rgba(0,0,0,.35)); }
+#penCursor svg, #penCursor img { display: block; }
 #penCursor.g3 { filter: drop-shadow(2px 4px 3px rgba(0,0,0,.45)) drop-shadow(0 0 4px rgba(80,220,140,.6)); }
 #penCursor.g4 { filter: drop-shadow(2px 4px 3px rgba(0,0,0,.45)) drop-shadow(0 0 6px rgba(255,200,80,.85)); }
 #penCursor.g5 { animation: penGlow 1.6s ease-in-out infinite; }
