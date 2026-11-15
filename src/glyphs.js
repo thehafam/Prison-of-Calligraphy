@@ -135,7 +135,7 @@
       en: ['a', 'b', 'c', 'd', 'e', 'h', 'i', 'l', 'n', 'o'],
     },
     word1: {
-      ko: KO_CONS.flatMap(c => Object.keys(VOWELS).map(v => syllable(c, v))),
+      ko: KO_CONS.flatMap(c => [...'ㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ'].map(v => syllable(c, v))), // 기본 모음만 (이중모음은 단어 4)
       en: ['sky', 'eat', 'cat', 'dog', 'sun', 'cup', 'hat', 'pen', 'red', 'box', 'map', 'bed', 'egg', 'fox', 'ink', 'jam', 'key', 'owl', 'run', 'top', 'van', 'web', 'yes', 'zip', 'big'],
     },
     // 쉬운 단어 2: 한글 받침 없는 두 글자 단어 / 영어 4~5자 단어

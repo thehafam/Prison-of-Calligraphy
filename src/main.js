@@ -11,7 +11,14 @@
   const STAGES = [{ time: 30, quota: 4, tier: 'letter' }, { time: 30, quota: 5, tier: 'letter' },
     { time: 40, quota: 4, tier: 'word1' }, { time: 40, quota: 5, tier: 'word1' },
     { time: 50, quota: 4, tier: 'word2' }, { time: 60, quota: 4, tier: 'word3' },
-    { time: 70, quota: 4, tier: 'word4' }];
+    { time: 70, quota: 4, tier: 'word4', guide: false }];
+  // 난이도가 오를 때 교도관의 설명 (guide: false = 7단계부터 획 순서 화살표·번호를 지움)
+  const TIER_TALK = {
+    word1: ['up_intro1', 'up_word1'],
+    word2: ['up_intro2', 'up_word2'],
+    word3: ['up_intro3', 'up_word3'],
+    word4: ['up_intro4', 'up_word4', 'up_noguide1', 'up_noguide2'],
+  };
   const PASS = 90;
   const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
@@ -47,7 +54,7 @@
     for (const s of sheet.tpl) poly(s);
     // 획 순서 화살표·번호
     const labels = [];
-    sheet.tpl.forEach((s, i) => arrow(s, i + 1, labels, g));
+    if (sheet.guide) sheet.tpl.forEach((s, i) => arrow(s, i + 1, labels, g));
     // 플레이어 글씨
     ctx.strokeStyle = '#26221d'; ctx.lineWidth = 3.4 * g;
     for (const s of sheet.strokes) {
@@ -84,7 +91,8 @@
     if (!key) [lang, key] = opt.pool ? opt.pool[Math.floor(Math.random() * opt.pool.length)] : PC.pick(opt.tier || stageDef().tier);
     const { tpl, k, w = 100 } = PC.build(lang, key), g = Math.min(1, Math.max(0.5, k * 1.15)); // g: 작은 글자일수록 선·번호·허용 거리를 줄임
     setPaper(w);
-    sheet = { lang, key, tpl, g, w, strokes: [], ink: 0, breakAt: Infinity };
+    const guide = S.mode !== 'stage' || stageDef().guide !== false;
+    sheet = { lang, key, tpl, g, w, guide, strokes: [], ink: 0, breakAt: Infinity };
     // 파손: 장마다 연필 등급 확률로, 쓰는 도중 아무 순간에 (튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
     if (opt.breakAt) sheet.breakAt = len * opt.breakAt;
@@ -228,10 +236,19 @@
   // ---------- 단계 ----------
   const stageDef = () => STAGES[Math.min(S.stage, STAGES.length - 1)];
   function startGame() {
-    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0] });
+    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null });
     PC.tutorial.run(); // 새 게임은 반드시 튜토리얼부터
   }
   function startStage() {
+    // 묶음(tier)이 바뀌는 단계에 처음 들어서면: 새 난이도 예시 종이를 띄우고 교도관이 설명한 뒤 시작 (시간은 그 뒤부터)
+    const def = stageDef(), prev = STAGES[S.stage - 1];
+    if (prev && prev.tier !== def.tier && S.announced !== def.tier) {
+      S.announced = def.tier;
+      Object.assign(S, { mode: 'stage', running: false, stack: [], timeLeft: def.time });
+      $('stack').innerHTML = ''; show('game'); $('controls').style.visibility = 'hidden';
+      newSheet({ tier: def.tier }); hud();
+      return PC.tutorial.talk(TIER_TALK[def.tier] || [], startStage);
+    }
     Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: stageDef().time, running: true, busy: false });
     $('stack').innerHTML = ''; $('controls').style.visibility = '';
     show('game'); newSheet(); hud();

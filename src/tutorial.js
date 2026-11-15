@@ -103,5 +103,12 @@
     $('dlg').classList.add('hidden'); $('eyes').classList.add('hidden'); $('bg').classList.remove('blurry');
   }
 
-  PC.tutorial = { run, stop };
+  // 단계 사이 교도관 대사 (난이도가 오를 때)
+  async function talk(keys, done) {
+    const my = ++token; introduced = true;
+    for (const k of keys) { await say(k); if (my !== token) return; }
+    $('dlg').classList.add('hidden'); done();
+  }
+
+  PC.tutorial = { run, stop, talk };
 })();
