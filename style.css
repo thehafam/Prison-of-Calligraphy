@@ -149,3 +149,4 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 .skdesc small { color: #d9b24a; }
 .dots { color: #d9b24a; letter-spacing: .15em; white-space: nowrap; }
 .was { color: #8b7a5a; text-decoration: line-through; font-size: .8em; }
+#resultText { white-space: pre-line; }

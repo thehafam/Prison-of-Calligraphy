@@ -25,7 +25,8 @@
     sent2: ['up_intro6', 'up_sent2'],
     sent3: ['up_intro7', 'up_sent3', 'up_last'],
   };
-  const PASS = 80; // 합격선 (사용자 확정)
+  const PASS = 80;
+  const fmtMoney = n => (Number.isInteger(n) ? String(n) : n.toFixed(1)); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
   const baseOf = tpl => Math.max(1, Math.round((tpl.length / 3) * 1.5)); // 획 수 ÷ 3 × 1.5 (사용자 확정: 1.5배)
   const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word'));
@@ -299,7 +300,7 @@
   }
   function openShop() { renderShop(); $('shop').classList.remove('hidden'); }
   function renderShop() {
-    $('shopMoney').innerHTML = `<img class="coin" src="assets/coin.png" alt=""> ${S.money} ${t('money')}`;
+    $('shopMoney').innerHTML = `<img class="coin" src="assets/coin.png" alt=""> ${fmtMoney(S.money)} ${t('money')}`;
     document.querySelectorAll('#shopTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === (S.shopTab || 'items')));
     if (S.shopTab === 'skills') return renderSkills();
     const names = t('pencils');
@@ -379,6 +380,13 @@
     const scores = S.stack.map(x => PC.score(x.tpl, x.strokes, 7 * x.g));
     const pay = scores.map((v, i) => rewardOf(v, S.stack[i].base));
     S.passed = scores.filter(v => v >= PASS).length; S.earned = pay.reduce((a, b) => a + b, 0); S.money += S.earned;
+    // 할당 초과 보너스 (사용자 확정): 단계를 통과하면 할당량을 넘겨 합격한 종이마다 그 종이 기본급의 절반
+    S.bonus = 0;
+    if (S.mode === 'stage') {
+      const okBases = S.stack.filter((x, i) => scores[i] >= PASS).map(x => x.base), q = stageDef().quota;
+      if (okBases.length > q) S.bonus = okBases.slice(q).reduce((a, b) => a + b / 2, 0);
+      S.money += S.bonus;
+    }
     $('resultScores').innerHTML = scores.map((v, i) => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}${pay[i] ? ` · +${pay[i]} <img class="coin" src="assets/coin.png" alt="">` : ''}</span>`).join('');
     S.stack = []; $('stack').innerHTML = '';
     return scores;
@@ -428,7 +436,7 @@
     const q = stageDef().quota, clear = S.passed >= q;
     if (!clear) S.lives--;
     hud();
-    const txt = t('stageResult', { n: S.passed, q, m: S.earned });
+    const txt = t('stageResult', { n: S.passed, q, m: fmtMoney(S.earned) }) + (S.bonus ? '\n' + t('bonusLine', { b: fmtMoney(S.bonus) }) : '');
     if (S.lives <= 0) return gameOver();
     const last = S.stage >= STAGES.length - 1 && clear;
     if (last) saveGame('ended');               // 끝까지 깸 → 이어하기는 보이되 못 누름
@@ -451,7 +459,7 @@
       await wait(450); sfxFall();
       await wait(1300); sfxThud(0.5); $('game').classList.remove('shake');
       await wait(1200);
-      $('deathSub').textContent = t('deathSub', { n: S.stage + 1, m: S.money });
+      $('deathSub').textContent = t('deathSub', { n: S.stage + 1, m: fmtMoney(S.money) });
       $('death').classList.remove('hidden');
     });
   }
@@ -542,7 +550,7 @@
     $('hudTime').textContent = S.timeLeft.toFixed(1);
     $('hudQuota').textContent = `${S.stack.length} / ${stageDef().quota}`;
     $('hudLives').textContent = '♥'.repeat(Math.max(0, S.lives)) + '♡'.repeat(Math.max(0, 3 - S.lives));
-    $('hudMoney').textContent = S.money;
+    $('hudMoney').textContent = fmtMoney(S.money);
     const spare = S.spares.reduce((a, b) => a + b, 0);
     $('hudPencil').textContent = (S.hand === null ? t('noPencil') : t('pencils')[S.hand]) + (spare ? ` (+${spare} ${t('spares')})` : '');
   }
