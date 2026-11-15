@@ -117,3 +117,17 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 @keyframes glowR { 0%, 100% { box-shadow: 0 0 10px 2px rgba(255, 255, 255, .5); filter: brightness(1.05) hue-rotate(0deg); }
   50% { box-shadow: 0 0 22px 6px rgba(255, 240, 200, .9); filter: brightness(1.3) hue-rotate(25deg); } }
 @media (prefers-reduced-motion: reduce) { .pic, .pic i, .pic::after { animation: none !important; } }
+
+/* 타이틀: 흐릿하게 어두운 감옥(아직 눈을 뜨기 전) 위에 종이가 날아와 제목이 써짐 */
+#title { background: transparent; }
+#bg.dim { filter: blur(7px) brightness(.38); }
+#titleWrap { perspective: 900px; }
+#titlePaper { display: block; box-shadow: 0 10px 30px #000c; }
+#titleWrap.arrive #titlePaper { animation: titleIn .9s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes titleIn { 0% { transform: translateY(-35vh) scale(.15) rotateX(70deg) rotateZ(-8deg); opacity: 0; } 20% { opacity: 1; }
+  60% { transform: translateY(-10vh) scale(.6) rotateX(30deg) rotateZ(3deg); } 100% { transform: none; } }
+#titleSub { margin: 1.1em 0 1.4em; font-size: clamp(18px, 2.6vw, 30px); letter-spacing: .35em; color: #d9c9a3; opacity: 0; transition: opacity 1.2s; text-shadow: 0 2px 8px #000; }
+#titleBtns { display: flex; flex-direction: column; align-items: center; opacity: 0; pointer-events: none; transition: opacity .8s; }
+#titleSub.show, #titleBtns.show { opacity: 1; pointer-events: auto; }
+#fadeBlack { position: absolute; inset: 0; z-index: 12; background: #000; opacity: 0; pointer-events: none; transition: opacity .8s; }
+#fadeBlack.on { opacity: 1; pointer-events: auto; }

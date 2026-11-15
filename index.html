@@ -47,11 +47,15 @@
   </div>
 
   <section id="title" class="overlay">
-    <h1 data-i18n="title">Prison of Calligraphy</h1>
-    <p class="sub" data-i18n="subtitle"></p>
-    <button id="btnStart" data-i18n="start">Start</button>
-    <button id="btnSettings" data-i18n="settings">Settings</button>
+    <!-- 타이틀: 창구에서 날아온 종이에 제목이 획 순서대로 써짐 → 한자 → 버튼 -->
+    <div id="titleWrap"><canvas id="titlePaper" role="img" aria-label="Prison of Calligraphy"></canvas></div>
+    <p id="titleSub">獄: 敎筆</p>
+    <div id="titleBtns">
+      <button id="btnStart" data-i18n="start">Start</button>
+      <button id="btnSettings" data-i18n="settings">Settings</button>
+    </div>
   </section>
+  <div id="fadeBlack"></div>
 
   <section id="settings" class="overlay hidden">
     <h2 data-i18n="settings">Settings</h2>

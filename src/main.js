@@ -343,8 +343,49 @@
   }
 
   // ---------- 화면 ----------
+  // ---------- 타이틀: 보이지 않는 손이 제목을 획 순서대로 씀 (사용자 확정: 한 줄 제목, 한자는 글자로만) ----------
+  const tcv = $('titlePaper'), tctx = tcv.getContext('2d');
+  let titleAnim = 0, titleSkip = false;
+  function playTitle() {
+    cancelAnimationFrame(titleAnim); titleSkip = false;
+    const lang = PC.getLang(), key = t('title');
+    const { tpl, k, w } = PC.build(lang, key), g = Math.min(1, Math.max(0.5, k * 1.15));
+    const lens = tpl.map(s => PC.length(s)), total = lens.reduce((a, b) => a + b, 0);
+    const d = devicePixelRatio || 1, cw = Math.min(innerWidth * 0.86, (innerHeight * 0.34 * w) / 100), ch = (cw * 100) / w;
+    tcv.style.width = cw + 'px'; tcv.style.height = ch + 'px'; tcv.width = Math.round(cw * d); tcv.height = Math.round(ch * d);
+    tcv.setAttribute('aria-label', key);
+    ['titleSub', 'titleBtns'].forEach(id => $(id).classList.remove('show'));
+    const wrap = $('titleWrap'); wrap.classList.remove('arrive'); void wrap.offsetWidth; wrap.classList.add('arrive');
+    const DUR = 3800, t0 = performance.now() + 900; let lastTick = 0;
+    const frame = now => {
+      const prog = titleSkip ? 1 : Math.max(0, Math.min(1, (now - t0) / DUR));
+      const u = tcv.height / 100; tctx.setTransform(u, 0, 0, u, 0, 0);
+      tctx.fillStyle = '#f1e7cf'; tctx.fillRect(0, 0, w, 100);
+      tctx.strokeStyle = '#8b7a5a'; tctx.lineWidth = 0.6; tctx.strokeRect(4, 4, w - 8, 92);
+      tctx.strokeStyle = '#26221d'; tctx.lineWidth = 4 * g; tctx.lineCap = tctx.lineJoin = 'round';
+      let left = total * prog;
+      tpl.forEach((s, i) => {
+        if (left <= 0) return;
+        tctx.beginPath(); tctx.moveTo(...s[0]);
+        for (let j = 1; j < s.length && left > 0; j++) {
+          const [ax, ay] = s[j - 1], [bx, by] = s[j], seg = Math.hypot(bx - ax, by - ay);
+          if (seg <= left) { tctx.lineTo(bx, by); left -= seg; }
+          else { const f = left / seg; tctx.lineTo(ax + (bx - ax) * f, ay + (by - ay) * f); left = 0; }
+        }
+        tctx.stroke();
+      });
+      if (prog > 0 && prog < 1 && now - lastTick > 70) { lastTick = now; sfxNoise(0.05, 3200, 2600, 0.05, 'highpass'); } // 사각사각
+      if (prog < 1) titleAnim = requestAnimationFrame(frame);
+      else { $('titleSub').classList.add('show'); setTimeout(() => $('titleBtns').classList.add('show'), titleSkip ? 0 : 600); }
+    };
+    titleAnim = requestAnimationFrame(frame);
+  }
+  // 쓰는 도중 아무 곳이나 누르면 다 쓴 상태로
+  $('title').addEventListener('pointerdown', e => { if (!e.target.closest('button')) titleSkip = true; });
+
   function show(which) {
     const g = which === 'game';
+    $('bg').classList.toggle('dim', !g);
     $('title').classList.toggle('hidden', g);
     $('deskArea').classList.toggle('hidden', !g); $('btnShop').classList.toggle('hidden', !g);
     $('hud').classList.toggle('hidden', !g || S.mode !== 'stage');
@@ -352,7 +393,7 @@
   }
   function toTitle() {
     clearInterval(timerId); S.mode = 'title'; S.running = false; sheet = null;
-    $('stack').innerHTML = ''; PC.tutorial.stop(); show('title');
+    $('stack').innerHTML = ''; PC.tutorial.stop(); show('title'); playTitle();
     ['hood', 'death', 'shop'].forEach(id => $(id).classList.add('hidden')); $('hood').classList.remove('drop'); S.busy = false;
   }
   function hud() {
@@ -405,13 +446,18 @@
   // 상점은 연필이 부러지지 않았어도 게임 화면(튜토리얼·단계·대사·정산 중)이면 언제든 열림 (사용자 확정)
   $('btnShop').onclick = () => { if (S.mode !== 'title' && $('death').classList.contains('hidden')) openShop(); };
   $('btnShopClose').onclick = () => { $('shop').classList.add('hidden'); if (T.onShopClose) T.onShopClose(); };
-  $('btnStart').onclick = startGame;
+  // 시작: 눈이 감기듯 검게 닫힌 뒤 튜토리얼(눈을 뜨는 장면)로
+  $('btnStart').onclick = () => {
+    $('fadeBlack').classList.add('on');
+    setTimeout(() => { startGame(); setTimeout(() => $('fadeBlack').classList.remove('on'), 300); }, 900);
+  };
   $('btnDeath').onclick = toTitle;
   $('btnSettings').onclick = () => { $('selLang').value = PC.getLang(); $('settings').classList.remove('hidden'); };
   $('btnSettingsClose').onclick = () => $('settings').classList.add('hidden');
-  $('selLang').onchange = e => { PC.setLang(e.target.value); hud(); };
+  $('selLang').onchange = e => { PC.setLang(e.target.value); hud(); if (S.mode === 'title') playTitle(); };
 
   PC.setLang(PC.getLang());
+  show('title'); playTitle();
   PC.game = { S, T, PENCILS, PASS, get sheet() { return sheet; }, get flying() { return flying; },
     newSheet, toStack, vacuum, settle, pop, toast, result, openShop, show, startGame, startStage, endStage, draw, hud };
 })();
