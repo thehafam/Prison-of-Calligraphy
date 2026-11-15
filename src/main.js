@@ -27,7 +27,7 @@
   const rewardOf = (score, base) => (score >= 100 ? base + 2 : score >= 90 ? base + 1 : score >= PASS ? base : 0);
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
   const BREAK_PER_CHAR = 0.25;
-  const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
+  const ICONS = [0, 1, 2, 3, 4, 5].map(g => `assets/pencil_${g}.jpg`); // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
   const S = { mode: 'title', stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0],
