@@ -3,7 +3,7 @@
   const STR = {
     en: {
       title: 'Prison of Calligraphy',
-      start: 'Start', settings: 'Settings', language: 'Language', close: 'Close',
+      start: 'New Game', continue: 'Continue', settings: 'Settings', language: 'Language', close: 'Close',
       stage: 'Stage', time: 'Time', quota: 'Submitted / Quota', lives: 'Lives', money: 'Nyang', pencil: 'Pencil', spares: 'spare',
       shop: 'Shop', submit: 'Submit', newSheet: 'New sheet', noPencil: 'No pencil!',
       accepted: 'Accepted', rejected: 'Rejected',
@@ -66,7 +66,7 @@
     },
     ko: {
       title: '교필의 감옥',
-      start: '시작', settings: '설정', language: '언어', close: '닫기',
+      start: '새로 하기', continue: '이어하기', settings: '설정', language: '언어', close: '닫기',
       stage: '단계', time: '시간', quota: '제출 / 할당', lives: '목숨', money: '냥', pencil: '연필', spares: '여분',
       shop: '상점', submit: '상납', newSheet: '새 종이', noPencil: '연필이 없다!',
       accepted: '인정', rejected: '퇴짜',

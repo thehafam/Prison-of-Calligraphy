@@ -340,11 +340,14 @@
     const txt = t('stageResult', { n: S.passed, q, m: S.earned });
     if (S.lives <= 0) return gameOver();
     const last = S.stage >= STAGES.length - 1 && clear;
+    if (last) saveGame('ended');               // 끝까지 깸 → 이어하기는 보이되 못 누름
+    else { if (clear) S.stage++; saveGame(); } // 결과가 나오는 순간 저장 (실패해 잃은 목숨도 저장)
     result(clear ? t('stageClear') : t('stageFail'), txt + (last ? '\n' + t('protoEnd') : ''),
-      last ? t('restart') : t('nextStage'), () => { if (last) toTitle(); else { if (clear) S.stage++; startStage(); } });
+      last ? t('restart') : t('nextStage'), () => { if (last) toTitle(); else startStage(); });
   }
   // 죽음: 교도관의 마지막 말 → 복면이 씌워지듯 암전 → 쿵(발판이 꺼짐) → 떨어지는 소리 → "당신은 죽었습니다."
   function gameOver() {
+    saveGame('ended'); // 죽음도 엔딩 → 이어하기는 보이되 못 누름
     clearInterval(timerId); S.running = false; S.busy = true; cur = null;
     ['shop', 'result'].forEach(id => $(id).classList.add('hidden'));
     $('controls').style.visibility = 'hidden'; $('toast').classList.remove('show'); $('btnShop').classList.add('hidden');
@@ -366,6 +369,26 @@
     const b = $('btnResult'); b.textContent = btn;
     b.onclick = () => { $('result').classList.add('hidden'); fn(); };
     $('result').classList.remove('hidden');
+  }
+
+  // ---------- 자동 저장 (사용자 확정): 튜토리얼을 마치고 1단계에 들어설 때 + 매 단계 결과 ----------
+  // status: progress = 이어하기 가능 / ended = 엔딩을 봄(죽음 포함) → 이어하기 보이되 비활성 / 기록 없음 → 이어하기 숨김
+  const SAVE_KEY = 'prison_of_calligraphy_save_v1';
+  function saveGame(status = 'progress') {
+    const d = { status, stage: S.stage, lives: S.lives, money: S.money, hand: S.hand, spares: S.spares, announced: S.announced || null };
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (e) {}
+    updateContinue();
+  }
+  function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return null; } }
+  function updateContinue() {
+    const sv = loadSave(), b = $('btnContinue');
+    b.classList.toggle('hidden', !sv); b.disabled = !sv || sv.status !== 'progress';
+  }
+  function continueGame() {
+    const sv = loadSave(); if (!sv || sv.status !== 'progress') return;
+    Object.assign(S, { stage: sv.stage, lives: sv.lives, money: sv.money, hand: sv.hand ?? 0, spares: sv.spares, announced: sv.announced, mode: 'stage' });
+    if (S.hand === null && !S.spares.some(n => n)) S.hand = 0; // 저장 때 손이 비어 있었으면 볼품없는 연필 하나
+    startStage();
   }
 
   // ---------- 화면 ----------
@@ -419,7 +442,7 @@
   }
   function toTitle() {
     clearInterval(timerId); S.mode = 'title'; S.running = false; sheet = null;
-    $('stack').innerHTML = ''; PC.tutorial.stop(); show('title'); playTitle();
+    $('stack').innerHTML = ''; PC.tutorial.stop(); show('title'); playTitle(); updateContinue();
     ['hood', 'death', 'shop'].forEach(id => $(id).classList.add('hidden')); $('hood').classList.remove('drop'); S.busy = false;
   }
   function hud() {
@@ -473,17 +496,16 @@
   $('btnShop').onclick = () => { if (S.mode !== 'title' && $('death').classList.contains('hidden')) openShop(); };
   $('btnShopClose').onclick = () => { $('shop').classList.add('hidden'); if (T.onShopClose) T.onShopClose(); };
   // 시작: 눈이 감기듯 검게 닫힌 뒤 튜토리얼(눈을 뜨는 장면)로
-  $('btnStart').onclick = () => {
-    $('fadeBlack').classList.add('on');
-    setTimeout(() => { startGame(); setTimeout(() => $('fadeBlack').classList.remove('on'), 300); }, 900);
-  };
+  const fadeTo = fn => { $('fadeBlack').classList.add('on'); setTimeout(() => { fn(); setTimeout(() => $('fadeBlack').classList.remove('on'), 300); }, 900); };
+  $('btnStart').onclick = () => fadeTo(startGame);
+  $('btnContinue').onclick = () => { if (!$('btnContinue').disabled) fadeTo(continueGame); };
   $('btnDeath').onclick = toTitle;
   $('btnSettings').onclick = () => { $('selLang').value = PC.getLang(); $('settings').classList.remove('hidden'); };
   $('btnSettingsClose').onclick = () => $('settings').classList.add('hidden');
   $('selLang').onchange = e => { PC.setLang(e.target.value); hud(); if (S.mode === 'title') playTitle(); };
 
   PC.setLang(PC.getLang());
-  show('title'); playTitle();
+  show('title'); playTitle(); updateContinue();
   PC.game = { S, T, PENCILS, PASS, get sheet() { return sheet; }, get flying() { return flying; },
-    newSheet, toStack, vacuum, settle, pop, toast, result, openShop, show, startGame, startStage, endStage, draw, hud };
+    saveGame, newSheet, toStack, vacuum, settle, pop, toast, result, openShop, show, startGame, startStage, endStage, draw, hud };
 })();

@@ -96,6 +96,7 @@
       g.S.hand = 0; g.S.spares[0] += 2;
       await step(say('tu_pencils1')); await step(say('tu_pencils2')); await step(say('tu_go'));
       $('dlg').classList.add('hidden'); g.T.allowShop = false; g.T.onBreak = null;
+      g.saveGame(); // 튜토리얼을 마침 → 1단계부터 이어하기
       g.startStage();
     } catch (e) { if (e !== STOP) throw e; }
   }
