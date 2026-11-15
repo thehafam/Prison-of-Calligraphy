@@ -6,8 +6,9 @@
   // 필기구: 파손 확률 7%p씩 감소(마지막은 0%), 가격 3배씩
   const PENCILS = [0.40, 0.33, 0.26, 0.19, 0.12, 0].map((p, i) => ({ p, price: 10 * 3 ** i }));
   // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
-  // tier: letter 낱자 / word1 쉬운 단어(영어 짧은 단어·한글 한 글자). 단어 단계 시간·장수는 [임시]
-  const STAGES = [{ time: 30, quota: 4, tier: 'letter' }, { time: 30, quota: 5, tier: 'letter' }, { time: 40, quota: 4, tier: 'word1' }, { time: 40, quota: 5, tier: 'word1' }];
+  // tier: letter 낱자 / word1 쉬운 단어 1(영어 3자·한글 한 글자) / word2 쉬운 단어 2(영어 4~5자·한글 두 글자). 단어 단계 시간·장수는 [임시]
+  const STAGES = [{ time: 30, quota: 4, tier: 'letter' }, { time: 30, quota: 5, tier: 'letter' }, { time: 40, quota: 4, tier: 'word1' }, { time: 40, quota: 5, tier: 'word1' },
+    { time: 50, quota: 4, tier: 'word2' }, { time: 50, quota: 5, tier: 'word2' }];
   const PASS = 90;
   const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
@@ -78,7 +79,7 @@
   function newSheet(opt = {}) {
     let { lang, key } = opt;
     if (!key) [lang, key] = opt.pool ? opt.pool[Math.floor(Math.random() * opt.pool.length)] : PC.pick(opt.tier || stageDef().tier);
-    const { tpl, k } = PC.build(lang, key), g = Math.min(1, Math.max(0.7, k)); // g: 작은 글자일수록 선·번호·허용 거리를 줄임
+    const { tpl, k } = PC.build(lang, key), g = Math.min(1, Math.max(0.5, k * 1.15)); // g: 작은 글자일수록 선·번호·허용 거리를 줄임
     sheet = { lang, key, tpl, g, strokes: [], ink: 0, breakAt: Infinity };
     // 파손: 장마다 연필 등급 확률로, 쓰는 도중 아무 순간에 (튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);

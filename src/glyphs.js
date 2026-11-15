@@ -75,25 +75,24 @@
     const [x0, y0, x1, y1] = v.rect, fit = ([x, y]) => [x0 + ((x - 15) / 70) * (x1 - x0), y0 + ((y - 15) / 70) * (y1 - y0)];
     return GLYPHS.ko[c].map(st => st.map(fit)).concat(v.s);
   }
-  // 영어 단어: 낱자를 가로로 늘어놓고 종이에 맞게 줄임
-  function buildWord(w) {
-    const parts = [...w].map(ch => {
-      const g = GLYPHS.en[ch], xs = g.flat().map(p => p[0]);
-      return { g, x0: Math.min(...xs), w: Math.max(...xs) - Math.min(...xs) };
-    });
-    const GAP = 12, W = parts.reduce((a, p) => a + p.w, 0) + GAP * (parts.length - 1), k = Math.min(0.8, 82 / W);
+  // 단어: 글자(획 묶음)를 가로로 늘어놓고 종이에 맞게 줄임. cy = 글자 칸 안에서 세로 가운데
+  function buildRow(glyphs, gap, cy, maxK) {
+    const parts = glyphs.map(g => { const xs = g.flat().map(p => p[0]); return { g, x0: Math.min(...xs), w: Math.max(...xs) - Math.min(...xs) }; });
+    const W = parts.reduce((a, p) => a + p.w, 0) + gap * (parts.length - 1), k = Math.min(maxK, 82 / W);
     let x = 50 - (W * k) / 2;
-    const oy = 50 - 55 * k, tpl = [];
+    const oy = 50 - cy * k, tpl = [];
     for (const p of parts) {
       for (const st of p.g) tpl.push(st.map(([px, py]) => [x + (px - p.x0) * k, oy + py * k]));
-      x += (p.w + GAP) * k;
+      x += (p.w + gap) * k;
     }
     return { tpl, k };
   }
+  const buildWord = w => buildRow([...w].map(ch => GLYPHS.en[ch]), 12, 55, 0.8);   // 영어: x높이 44~80, 위아래 15~96
+  const buildKoWord = w => buildRow([...w].map(buildSyllable), 10, 50, 0.6);       // 한글: 음절 칸 0~100
   // 종이 한 장의 글자: 낱자 / 한글 음절 / 영어 단어 → { tpl, k(크기 비율: 선 굵기·허용 거리에 씀) }
   function build(lang, key) {
     if (GLYPHS[lang][key]) return { tpl: GLYPHS[lang][key], k: 1 };
-    if (lang === 'ko') return { tpl: buildSyllable(key), k: 1 };
+    if (lang === 'ko') return key.length > 1 ? buildKoWord(key) : { tpl: buildSyllable(key), k: 1 };
     return buildWord(key);
   }
 
@@ -107,6 +106,13 @@
     word1: {
       ko: KO_CONS.flatMap(c => Object.keys(VOWELS).map(v => syllable(c, v))),
       en: ['sky', 'eat', 'cat', 'dog', 'sun', 'cup', 'hat', 'pen', 'red', 'box', 'map', 'bed', 'egg', 'fox', 'ink', 'jam', 'key', 'owl', 'run', 'top', 'van', 'web', 'yes', 'zip', 'big'],
+    },
+    // 쉬운 단어 2: 한글 받침 없는 두 글자 단어 / 영어 4~5자 단어
+    word2: {
+      ko: ['나무', '바다', '우유', '기차', '모자', '하마', '오이', '아기', '고기', '두부', '소리', '다리', '머리', '지구', '피자', '커피', '허리', '우리',
+        '나비', '거미', '가구', '구두', '도로', '비누', '사자', '여우', '오리', '자두', '치즈', '포도', '가지', '휴지', '요리', '노루', '부모', '바지', '주스', '고추', '미소', '파도'],
+      en: ['book', 'tree', 'fish', 'bird', 'rain', 'star', 'moon', 'milk', 'door', 'hand', 'lamp', 'ring', 'wolf', 'frog', 'cake', 'jump', 'king', 'snow',
+        'apple', 'bread', 'chair', 'house', 'water', 'light', 'paper', 'stone', 'river', 'smile', 'quiet', 'zebra', 'grape', 'night', 'cloud', 'tiger', 'happy'],
     },
   };
   const pick = (tier = 'letter') => {
