@@ -161,7 +161,15 @@
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 
   // ---------- 연필 ----------
+  // 부러지는 순간: 쥐고 있던 연필 등급의 부러짐 그림을 잠깐 띄움 (assets/pencil_snap_{등급}.jpg, 깨지지 않은 연필은 없음)
+  function showSnap(g) {
+    if (g === null || g > 4) return;
+    const e = $('snap'); e.style.backgroundImage = `url(assets/pencil_snap_${g}.jpg)`;
+    e.classList.remove('hidden', 'show'); void e.offsetWidth; e.classList.add('show');
+    $('game').classList.add('shake'); setTimeout(() => $('game').classList.remove('shake'), 500);
+  }
   function breakPencil() {
+    showSnap(S.hand);
     cur = null; sheet.breakAt = Infinity; sheet.breaks = []; S.hand = null; // 새 연필을 쥐면 남은 글자로 다시 정함
     sfxSnap();
     if (S.mode === 'tutorial') { hud(); return T.onBreak && T.onBreak(); }
@@ -185,7 +193,7 @@
 
   function openShop() { renderShop(); $('shop').classList.remove('hidden'); }
   function renderShop() {
-    $('shopMoney').textContent = `${S.money} ${t('money')}`;
+    $('shopMoney').innerHTML = `<img class="coin" src="assets/coin.png" alt=""> ${S.money} ${t('money')}`;
     const names = t('pencils');
     let h = `<tr><th></th><th>${t('breakRate')}</th><th>${t('price')}</th><th>${t('owned')}</th><th></th></tr>`;
     PENCILS.forEach((pc, g) => {
@@ -244,7 +252,7 @@
     const scores = S.stack.map(x => PC.score(x.tpl, x.strokes, 7 * x.g));
     const pay = scores.map((v, i) => rewardOf(v, S.stack[i].base));
     S.passed = scores.filter(v => v >= PASS).length; S.earned = pay.reduce((a, b) => a + b, 0); S.money += S.earned;
-    $('resultScores').innerHTML = scores.map((v, i) => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}${pay[i] ? ` · +${pay[i]}` : ''}</span>`).join('');
+    $('resultScores').innerHTML = scores.map((v, i) => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}${pay[i] ? ` · +${pay[i]} <img class="coin" src="assets/coin.png" alt="">` : ''}</span>`).join('');
     S.stack = []; $('stack').innerHTML = '';
     return scores;
   }
