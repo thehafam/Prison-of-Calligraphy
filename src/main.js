@@ -29,16 +29,16 @@
   const fmtMoney = n => (Number.isInteger(n) ? String(n) : n.toFixed(1)); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
   const baseOf = tpl => Math.max(1, Math.round((tpl.length / 3) * 1.5)); // 획 수 ÷ 3 × 1.5 (사용자 확정: 1.5배)
-  const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word') + 1); // +1: 외상 도입과 함께 합격 종이마다 1냥 더 (사용자 확정)
+  const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word') * WORD_NYANG + 1); // +1: 외상 도입과 함께 합격 종이마다 1냥 더 (사용자 확정)
   const CREDIT_BASE = 18;
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
   const BREAK_PER_CHAR = 0.25 * 2 / 3; // 사용자 확정: 예전(1/4)의 2/3
   const ICONS = [0, 1, 2, 3, 4, 5].map(g => `assets/pencil_${g}.jpg`); // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
-  // 스킬 (상점 스킬 탭, 최대 5레벨, 레벨마다 가격이 오름) [임시: 효과·가격]
+  // 스킬 (상점 스킬 탭, 모두 최대 15레벨 — 사용자 확정, 레벨마다 가격이 오름) [임시: 효과·가격]
   const SKILLS = {
-    clock: { price: [15, 30, 50, 80, 120] },   // 느린 시계: 단계 시간 +4초/레벨
-    hand:  { price: [10, 20, 35, 55, 80] },    // 빠른 손: 여분으로 바꿔 쥐는 시간 1.5 → 0.1초
-    word:  { price: [20, 40, 70, 110, 160] },  // 좋은 말 한마디: 합격한 종이마다 +1냥/레벨
+    clock: { price: [5, 8, 11, 14, 17, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65] },  // 느린 시계: 단계 시간 +2초/레벨 (최대 +30초, 합 480)
+    hand:  { price: [3, 5, 7, 9, 11, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40] },     // 빠른 손: 바꿔 쥐는 시간 1.5 → 0.1초 (−0.1초/레벨, 합 300)
+    word:  { price: [8, 12, 16, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75] },  // 좋은 말 한마디: 합격한 종이마다 +0.5냥/레벨 (최대 +7.5, 합 606)
     tough: { price: [5, 8, 11, 14, 17, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65] }, // 단단한 심 15레벨: 연필 업그레이드 (아래 TOUGH_R) [임시: 가격]
   };
   // 단단한 심 = 연필 업그레이드 (사용자 확정): 레벨마다 '지금 가장 좋은 연필'의 파손율이 내려감. 다음 연필의 파손율에 닿으면 그 연필 해금,
@@ -52,7 +52,7 @@
   const unlockLevel = g => TOUGH_R.findIndex(r => 0.40 - r / 100 <= PENCILS[g].p + 1e-9);
   const breakRate = g => (g === 5 ? 0 : Math.max(FLOOR[g], Math.min(PENCILS[g].p, topRate())));
   const skillMax = k => SKILLS[k].price.length;
-  const CLOCK_SEC = 4, SWAP_BY_LV = [1.5, 1.2, 0.9, 0.6, 0.3, 0.1];
+  const CLOCK_SEC = 2, WORD_NYANG = 0.5, SWAP_BY_LV = Array.from({ length: 16 }, (_, i) => +(1.5 - i * 0.1).toFixed(1));
   const lv = k => (S.skills && S.skills[k]) || 0;
   const swapMs = () => SWAP_BY_LV[lv('hand')] * 1000; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
@@ -334,7 +334,7 @@
     let h = `<tr><th></th><th>${t('skillEffect')}</th><th>${t('skillLevel')}</th><th>${t('price')}</th><th></th></tr>`;
     for (const k of Object.keys(SKILLS)) {
       const l = lv(k), M = skillMax(k), max = l >= M, price = SKILLS[k].price[l];
-      const eff = v => (k === 'clock' ? `+${v * CLOCK_SEC}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `${+(40 - TOUGH_R[v]).toFixed(1)}%` : `+${v}`);
+      const eff = v => (k === 'clock' ? `+${v * CLOCK_SEC}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `${+(40 - TOUGH_R[v]).toFixed(1)}%` : `+${fmtMoney(v * WORD_NYANG)}`);
       const desc = `${t('sk_' + k + '_d')}<br><small>${eff(l)}${max ? '' : ' → ' + eff(l + 1)}</small>`;
       const dots = M > 5 ? `${l} / ${M}` : '●'.repeat(l) + '○'.repeat(M - l);
       h += `<tr><td class="skname">${t('sk_' + k)}</td><td class="skdesc">${desc}</td><td class="dots">${dots}</td><td>${max ? '—' : price}</td>
@@ -349,7 +349,7 @@
       const k = b.dataset.skill, l = lv(k); if (l >= skillMax(k) || S.money < SKILLS[k].price[l]) return;
       S.money -= SKILLS[k].price[l]; S.skills = S.skills || {}; S.skills[k] = l + 1;
       if (k === 'tough') planBreaks();
-      if (k === 'clock' && S.running) S.bonusTime = (S.bonusTime || 0) + CLOCK_SEC; // 단계 도중에 사면 지금 단계에도 바로 +4초
+      if (k === 'clock' && S.running) S.bonusTime = (S.bonusTime || 0) + CLOCK_SEC; // 단계 도중에 사면 지금 단계에도 바로 +2초
     } else if (b.dataset.buy) {
       const g = +b.dataset.buy; if (S.money < PENCILS[g].price) return;
       S.money -= PENCILS[g].price;
