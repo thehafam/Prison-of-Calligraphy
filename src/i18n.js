@@ -49,7 +49,7 @@
       d_1: 'A pity... It seems this is as far as you go.',
       d_2: 'The esteemed ones have no use for a hand that cannot keep up.',
       d_3: 'Goodbye.',
-      youDied: 'You died.', deathSub: 'Your hand stopped at stage {n}. You left {m} nyang behind.',
+      youDied: 'Game Over', deathSub: 'Your hand stopped at stage {n}. You left {m} nyang behind.',
       up_intro1: "Too easy for you now, isn't it? Let's raise the difficulty a little...",
       up_word1: 'No more single strokes of the alphabet. Korean comes as a whole syllable — a consonant and a vowel joined. English comes as short three-letter words.',
       up_intro2: 'Hm. You keep up better than I expected. Another step up, then.',
