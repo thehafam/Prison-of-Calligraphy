@@ -91,7 +91,10 @@
       g.T.allowShop = true; g.openShop();
       await step(new Promise(r => { g.T.onShopClose = r; }));
       g.T.onShopClose = null;
-      await step(say('tu_shop2')); await step(say('tu_go'));
+      await step(say('tu_shop2'));
+      // 볼품없는 연필 세 자루(손에 하나, 여분 둘)와 경고
+      g.S.hand = 0; g.S.spares[0] += 2;
+      await step(say('tu_pencils1')); await step(say('tu_pencils2')); await step(say('tu_go'));
       $('dlg').classList.add('hidden'); g.T.allowShop = false; g.T.onBreak = null;
       g.startStage();
     } catch (e) { if (e !== STOP) throw e; }

@@ -10,9 +10,9 @@
   // 1~4단계는 두 단계씩 같은 묶음, 5단계부터는 한 단계마다 오름 (사용자 확정)
   const STAGES = [{ time: 30, quota: 4, tier: 'letter' }, { time: 30, quota: 5, tier: 'letter' },
     { time: 40, quota: 4, tier: 'word1' }, { time: 40, quota: 5, tier: 'word1' },
-    { time: 50, quota: 4, tier: 'word2' }, { time: 60, quota: 4, tier: 'word3' },
-    { time: 70, quota: 4, tier: 'word4', guide: false },
-    { time: 80, quota: 3, tier: 'sent1', guide: false }];
+    { time: 60, quota: 4, tier: 'word2' }, { time: 75, quota: 4, tier: 'word3' },
+    { time: 100, quota: 4, tier: 'word4', guide: false },
+    { time: 120, quota: 3, tier: 'sent1', guide: false }];
   // 난이도가 오를 때 교도관의 설명 (guide: false = 7단계부터 획 순서 화살표·번호를 지움)
   const TIER_TALK = {
     word1: ['up_intro1', 'up_word1'],
@@ -21,7 +21,12 @@
     word4: ['up_intro4', 'up_word4', 'up_noguide1', 'up_noguide2'],
     sent1: ['up_intro5', 'up_sent1'],
   };
-  const PASS = 90;
+  const PASS = 80; // 합격선 (사용자 확정)
+  // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
+  const baseOf = tpl => Math.max(1, Math.round(tpl.length / 3));
+  const rewardOf = (score, base) => (score >= 100 ? base + 2 : score >= 90 ? base + 1 : score >= PASS ? base : 0);
+  // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
+  const BREAK_PER_CHAR = 0.25;
   const ICONS = ['assets/pencil_0.jpg', 'assets/pencil_1.jpg']; // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   const SWAP_MS = 1500; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
@@ -94,14 +99,26 @@
     const { tpl, k, w = 100 } = PC.build(lang, key), g = Math.min(1, Math.max(0.5, k * 1.15)); // g: 작은 글자일수록 선·번호·허용 거리를 줄임
     setPaper(w);
     const guide = S.mode !== 'stage' || stageDef().guide !== false;
-    sheet = { lang, key, tpl, g, w, guide, strokes: [], ink: 0, breakAt: Infinity };
-    // 파손: 장마다 연필 등급 확률로, 쓰는 도중 아무 순간에 (튜토리얼은 정해 둔 장에서만)
+    const chars = [...key].filter(ch => ch !== ' ' && ch !== '.').length;
+    sheet = { lang, key, tpl, g, w, guide, chars, base: baseOf(tpl), strokes: [], ink: 0, breakAt: Infinity };
+    // 파손: 글자 수에 비례해 쓰는 도중 아무 순간에 (planBreaks, 튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
+    sheet.len = len;
     if (opt.breakAt) sheet.breakAt = len * opt.breakAt;
-    else if (S.mode === 'stage' && S.hand !== null && Math.random() < PENCILS[S.hand].p) sheet.breakAt = len * (0.1 + Math.random() * 0.8);
+    else planBreaks();
     draw(); fly('arrive');
     return sheet;
   }
+
+  // 지금 쥔 연필로 남은 글자에 파손 시점을 정함 (새 종이, 새 연필을 쥘 때)
+  function planBreaks() {
+    if (!sheet || S.mode !== 'stage' || S.hand === null) return;
+    const done = sheet.ink / sheet.len, left = Math.max(0, Math.round(sheet.chars * (1 - done)));
+    const p = PENCILS[S.hand].p * BREAK_PER_CHAR, at = [];
+    for (let i = 0; i < left; i++) if (Math.random() < p) at.push(sheet.ink + (sheet.len - sheet.ink) * (0.05 + Math.random() * 0.9));
+    sheet.breaks = at.sort((a, b) => a - b); sheet.breakAt = sheet.breaks.shift() ?? Infinity;
+  }
+  function takePencil(g) { S.hand = g; planBreaks(); hud(); }
 
   // 창구에서 날아오는 종이: 배경 이미지(cover) 안 창구 위치를 화면 좌표로 바꿔 출발점으로
   const BG = { w: 2000, h: 1091 }, HATCH = { x: 1005, y: 330 };
@@ -145,20 +162,20 @@
 
   // ---------- 연필 ----------
   function breakPencil() {
-    cur = null; sheet.breakAt = Infinity; S.hand = null;
+    cur = null; sheet.breakAt = Infinity; sheet.breaks = []; S.hand = null; // 새 연필을 쥐면 남은 글자로 다시 정함
     sfxSnap();
     if (S.mode === 'tutorial') { hud(); return T.onBreak && T.onBreak(); }
     toast(t('pencilBroke'));
     const best = bestSpare();
     if (best >= 0) {
       S.busy = true;
-      setTimeout(() => { S.spares[best]--; S.hand = best; S.busy = false; toast(t('swapped')); hud(); }, SWAP_MS);
+      setTimeout(() => { S.spares[best]--; S.busy = false; takePencil(best); toast(t('swapped')); }, SWAP_MS);
     } else if (S.money >= PENCILS[0].price) {
       setTimeout(() => { toast(t('buyPencil')); openShop(); }, 700);
     } else {
       S.busy = true;
       setTimeout(() => {
-        toast(t('freePencil')); S.lives--; S.hand = 0; S.busy = false; hud();
+        toast(t('freePencil')); S.lives--; S.busy = false; takePencil(0);
         if (S.lives <= 0) gameOver();
       }, SWAP_MS);
     }
@@ -185,10 +202,10 @@
     if (b.dataset.buy) {
       const g = +b.dataset.buy; if (S.money < PENCILS[g].price) return;
       S.money -= PENCILS[g].price;
-      if (S.hand === null && !S.busy) S.hand = g; else S.spares[g]++;
+      if (S.hand === null && !S.busy) takePencil(g); else S.spares[g]++;
     } else if (b.dataset.use) {
       const g = +b.dataset.use; if (!S.spares[g] || S.busy) return;
-      S.spares[g]--; if (S.hand !== null) S.spares[S.hand]++; S.hand = g;
+      S.spares[g]--; if (S.hand !== null) S.spares[S.hand]++; takePencil(g);
     }
     renderShop(); hud();
   });
@@ -202,7 +219,7 @@
   }
   function toStack() {
     const r = $('paperWrap').getBoundingClientRect(), i = S.stack.length;
-    S.stack.push({ tpl: sheet.tpl, strokes: sheet.strokes, g: sheet.g });
+    S.stack.push({ tpl: sheet.tpl, strokes: sheet.strokes, g: sheet.g, base: sheet.base });
     const img = new Image(); img.src = cv.toDataURL('image/jpeg', 0.7); img.className = 'sheet-mini';
     img.style.width = r.width + 'px'; img.style.height = r.height + 'px';
     img.style.transform = `translate(${r.left}px,${r.top}px)`;
@@ -222,11 +239,12 @@
     }, 400 + i * GAP));
     setTimeout(done, 400 + imgs.length * GAP + 700);
   }
-  // 정산: 더미의 종이를 채점해 90점 이상마다 1냥
+  // 정산: 더미의 종이를 채점해 80점 이상이면 기본금 + 완성도 보너스
   function settle() {
     const scores = S.stack.map(x => PC.score(x.tpl, x.strokes, 7 * x.g));
-    S.passed = scores.filter(v => v >= PASS).length; S.earned = S.passed; S.money += S.passed;
-    $('resultScores').innerHTML = scores.map(v => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}</span>`).join('');
+    const pay = scores.map((v, i) => rewardOf(v, S.stack[i].base));
+    S.passed = scores.filter(v => v >= PASS).length; S.earned = pay.reduce((a, b) => a + b, 0); S.money += S.earned;
+    $('resultScores').innerHTML = scores.map((v, i) => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}${pay[i] ? ` · +${pay[i]}` : ''}</span>`).join('');
     S.stack = []; $('stack').innerHTML = '';
     return scores;
   }
