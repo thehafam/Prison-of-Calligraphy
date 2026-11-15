@@ -164,7 +164,7 @@
   const POOLS = {
     letter: {
       ko: KO_CONS,
-      en: ['a', 'b', 'c', 'd', 'e', 'h', 'i', 'l', 'n', 'o'],
+      en: [...'abcdefghijklmnopqrstuvwxyz', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'], // 소문자·대문자 52자
     },
     word1: {
       ko: KO_CONS.flatMap(c => [...'ㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ'].map(v => syllable(c, v))), // 기본 모음만 (이중모음은 단어 4)
@@ -201,9 +201,12 @@
         'Waves dance.', 'Hope remains.', 'Quiet morning.', 'Soft rain.', 'Snow in June.', 'Autumn leaves.', 'Kind words.', 'Golden hour.', 'Light breaks.', 'Birds sing.'],
     },
   };
+  // 한글·영어를 반반으로 고르고 그 안에서 무작위. 영어 단어는 3분의 1 확률로 첫 글자를 대문자로 (Sky)
   const pick = (tier = 'letter') => {
-    const P = POOLS[tier], all = [...P.ko.map(k => ['ko', k]), ...P.en.map(k => ['en', k])];
-    return all[Math.floor(Math.random() * all.length)];
+    const P = POOLS[tier], lang = Math.random() < 0.5 ? 'ko' : 'en', list = P[lang];
+    let key = list[Math.floor(Math.random() * list.length)];
+    if (lang === 'en' && tier.startsWith('word') && Math.random() < 1 / 3) key = key[0].toUpperCase() + key.slice(1);
+    return [lang, key];
   };
   window.PC = Object.assign(window.PC || {}, { GLYPHS, POOLS, build, pick, canBuild });
 })();
