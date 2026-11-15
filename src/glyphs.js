@@ -167,12 +167,12 @@
       en: ['library', 'freedom', 'whisper', 'journey', 'kitchen', 'picture', 'monster', 'morning', 'captain', 'silence', 'lantern', 'chapter',
         'mystery', 'prisoner', 'notebook', 'alphabet', 'sentence', 'midnight', 'knowledge', 'strength', 'beautiful', 'calligraphy'],
     },
-    // 짧은 문장: 두세 단어 (띄어쓰기 자리는 비우고 마침표까지)
+    // 짧은 문장: 두세 단어, 높으신 분들이 모을 만한 아름다운 문장 (사용자 확정) — 띄어쓰기 자리는 비우고 마침표까지
     sent1: {
-      ko: ['밥 먹자.', '잘 자요.', '비가 온다.', '집에 가자.', '꿈을 꾼다.', '손이 아프다.', '시간이 없다.', '글씨를 쓴다.', '다시 써라.', '빨리 써라.',
-        '문이 열렸다.', '해가 진다.', '눈이 온다.', '나는 쓴다.', '조용히 해.', '펜을 들어라.', '물 좀 줘.', '불이 꺼졌다.', '밤이 깊다.', '숨을 쉬어라.'],
-      en: ['go home.', 'eat well.', 'be quiet.', 'time is up.', 'keep going.', 'write it down.', 'we are tired.', 'sit down.', 'hold the pen.', 'try again.',
-        'no mistakes.', 'stay awake.', 'look closer.', 'night falls.', 'rain is cold.', 'ink runs dry.', 'you may rest.', 'hands up.'],
+      ko: ['별이 빛난다.', '꽃이 핀다.', '바람이 분다.', '달이 밝다.', '봄이 온다.', '노을이 진다.', '눈꽃이 핀다.', '하늘이 맑다.', '강물은 흐른다.', '시간은 흐른다.',
+        '사랑은 꽃이다.', '꿈은 자란다.', '파도가 친다.', '새벽이 온다.', '마음이 따뜻하다.', '숲이 고요하다.', '빗소리가 좋다.', '오늘도 맑음.', '길은 이어진다.', '희망은 남는다.'],
+      en: ['stars are bright.', 'flowers bloom.', 'the wind sings.', 'moon over sea.', 'spring returns.', 'love is light.', 'dreams grow.', 'time flows.',
+        'waves dance.', 'hope remains.', 'quiet morning.', 'soft rain.', 'snow in june.', 'autumn leaves.', 'kind words.', 'golden hour.', 'light breaks.', 'birds sing.'],
     },
   };
   const pick = (tier = 'letter') => {
