@@ -73,3 +73,16 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 #resultScores { margin: 0 0 1em; display: flex; flex-wrap: wrap; gap: .4em; justify-content: center; max-width: 600px; }
 .chip { padding: .2em .6em; border: 1px solid var(--accent); color: var(--accent); border-radius: 3px; }
 .chip.ok { border-color: var(--ok); color: #7cc48c; }
+
+/* 복면: 거친 천이 위에서 내려와 눈앞을 덮음 */
+#hood { position: absolute; inset: -4% -2% 0; z-index: 10; pointer-events: none; transform: translateY(-110%);
+  background: radial-gradient(ellipse at 50% 85%, #1c1712 0%, #070605 55%, #000 100%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 2px, transparent 2px 5px), repeating-linear-gradient(-45deg, rgba(0,0,0,.25) 0 2px, transparent 2px 5px);
+  background-blend-mode: overlay; -webkit-mask-image: linear-gradient(#000 88%, transparent); mask-image: linear-gradient(#000 88%, transparent); }
+#hood.drop { animation: hoodDrop 1.8s cubic-bezier(.5, 0, .25, 1) forwards; }
+@keyframes hoodDrop { 0% { transform: translateY(-110%); } 65% { transform: translateY(3%); } 80% { transform: translateY(-2%); } 100% { transform: translateY(0); -webkit-mask-image: none; mask-image: none; } }
+#game.shake { animation: shake .5s linear; }
+@keyframes shake { 0%, 100% { transform: none; } 15% { transform: translate(-8px, 6px); } 30% { transform: translate(7px, -5px); } 45% { transform: translate(-5px, 4px); } 60% { transform: translate(4px, -2px); } 80% { transform: translate(-2px, 1px); } }
+#death { z-index: 11; background: #000; animation: fadeIn 2s ease-out; }
+#death h1 { color: #9e1b14; letter-spacing: .08em; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

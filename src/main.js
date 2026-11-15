@@ -294,15 +294,28 @@
     if (!clear) S.lives--;
     hud();
     const txt = t('stageResult', { n: S.passed, q, m: S.earned });
-    if (S.lives <= 0) return gameOver(txt);
+    if (S.lives <= 0) return gameOver();
     const last = S.stage >= STAGES.length - 1 && clear;
     result(clear ? t('stageClear') : t('stageFail'), txt + (last ? '\n' + t('protoEnd') : ''),
       last ? t('restart') : t('nextStage'), () => { if (last) toTitle(); else { if (clear) S.stage++; startStage(); } });
   }
-  function gameOver(txt = '') {
-    clearInterval(timerId); S.running = false;
-    if (!txt) $('resultScores').innerHTML = '';
-    result(t('gameOver'), txt, t('restart'), toTitle);
+  // 죽음: 교도관의 마지막 말 → 복면이 씌워지듯 암전 → 쿵(발판이 꺼짐) → 떨어지는 소리 → "당신은 죽었습니다."
+  function gameOver() {
+    clearInterval(timerId); S.running = false; S.busy = true; cur = null;
+    ['shop', 'result'].forEach(id => $(id).classList.add('hidden'));
+    $('controls').style.visibility = 'hidden'; $('toast').classList.remove('show');
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    PC.tutorial.talk(['d_1', 'd_2', 'd_3'], async () => {
+      $('hood').classList.remove('hidden'); void $('hood').offsetWidth; $('hood').classList.add('drop');
+      sfxNoise(1.2, 900, 300, 0.25); // 천이 스치는 소리
+      await wait(1900);
+      sfxThud(); $('game').classList.add('shake');
+      await wait(450); sfxFall();
+      await wait(1300); sfxThud(0.5); $('game').classList.remove('shake');
+      await wait(1200);
+      $('deathSub').textContent = t('deathSub', { n: S.stage + 1, m: S.money });
+      $('death').classList.remove('hidden');
+    });
   }
   function result(title, text, btn, fn) {
     $('resultTitle').textContent = title; $('resultText').textContent = text;
@@ -322,6 +335,7 @@
   function toTitle() {
     clearInterval(timerId); S.mode = 'title'; S.running = false; sheet = null;
     $('stack').innerHTML = ''; PC.tutorial.stop(); show('title');
+    ['hood', 'death'].forEach(id => $(id).classList.add('hidden')); $('hood').classList.remove('drop'); S.busy = false;
   }
   function hud() {
     if (S.mode !== 'stage') return;
@@ -350,6 +364,18 @@
     } catch (e) {}
   }
   const sfxSnap = () => sfxNoise(0.12, 1800, 2200, 1, 'highpass');
+  // 쿵: 낮게 떨어지는 사인파 + 짧은 저음 잡음 / 떨어짐: 아래로 내려가는 바람 소리
+  function sfxThud(gain = 1) {
+    try {
+      ac = ac || new AudioContext();
+      const o = ac.createOscillator(), g = ac.createGain(), now = ac.currentTime;
+      o.type = 'sine'; o.frequency.setValueAtTime(90, now); o.frequency.exponentialRampToValueAtTime(32, now + 0.6);
+      g.gain.setValueAtTime(gain, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      o.connect(g).connect(ac.destination); o.start(now); o.stop(now + 0.85);
+    } catch (e) {}
+    sfxNoise(0.25, 400, 120, gain * 0.8, 'lowpass');
+  }
+  const sfxFall = () => sfxNoise(1.1, 1600, 180, 0.6);
 
   // ---------- 버튼 ----------
   $('btnSubmit').onclick = submit;
@@ -361,6 +387,7 @@
   $('btnShop').onclick = () => { if (S.mode === 'stage' || T.allowShop) openShop(); };
   $('btnShopClose').onclick = () => { $('shop').classList.add('hidden'); if (T.onShopClose) T.onShopClose(); };
   $('btnStart').onclick = startGame;
+  $('btnDeath').onclick = toTitle;
   $('btnSettings').onclick = () => { $('selLang').value = PC.getLang(); $('settings').classList.remove('hidden'); };
   $('btnSettingsClose').onclick = () => $('settings').classList.add('hidden');
   $('selLang').onchange = e => { PC.setLang(e.target.value); hud(); };
