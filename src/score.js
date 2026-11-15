@@ -48,7 +48,7 @@
       const t = resample(template[i]), p = strokes[i].length > 1 ? resample(strokes[i]) : strokes[i];
       for (const f of [0, 1 / 3, 2 / 3, 1]) {
         const a = t[Math.round(f * (t.length - 1))], b = p[Math.round(f * (p.length - 1))];
-        if (dist(a, b) <= TOL * 1.5) ord += 0.25;
+        if (dist(a, b) <= TOL * 1.2) ord += 0.25;
       }
     }
     const order = (ord / template.length) * (n / Math.max(template.length, strokes.length));

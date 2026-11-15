@@ -117,14 +117,13 @@
     }
     return { tpl, k, w };
   }
-  // 글씨 크기는 단어 길이와 상관없이 늘 같음 (사용자 확정): 영어 0.75 / 한글 음절 0.5배
-  const buildWord = w => buildRow([...w].map(ch => GLYPHS.en[ch]), 12, 55, 0.75);
-  const buildKoWord = w => buildRow([...w].map(buildSyllable), 10, 50, 0.5);
+  // 글씨 크기는 언어마다 하나로 고정 (사용자 확정): 한글끼리·영어끼리 낱자든 단어든 같은 크기, 길면 종이만 늘어남
+  const EN_K = 0.75, KO_K = 0.6;
+  const buildWord = w => buildRow([...w].map(ch => GLYPHS.en[ch]), 12, 55, EN_K);
+  const buildKoWord = w => buildRow([...w].map(ch => (GLYPHS.ko[ch] ? GLYPHS.ko[ch] : buildSyllable(ch))), 10, 50, KO_K); // 낱자 자음은 음절 칸 그대로
   // 종이 한 장의 글자: 낱자 / 한글 음절 / 영어 단어 → { tpl, k(크기 비율: 선 굵기·허용 거리에 씀) }
   function build(lang, key) {
-    if (GLYPHS[lang][key]) return { tpl: GLYPHS[lang][key], k: 1 };
-    if (lang === 'ko') return key.length > 1 ? buildKoWord(key) : { tpl: buildSyllable(key), k: 1 };
-    return buildWord(key);
+    return lang === 'ko' ? buildKoWord(key) : buildWord(key);
   }
 
   // 단계별 묶음 (tier). 낱자 → 쉬운 단어 1 (영어 짧은 단어 / 한글 자모를 합친 한 글자). 이후 단계는 추후
