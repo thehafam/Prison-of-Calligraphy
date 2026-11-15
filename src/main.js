@@ -186,9 +186,34 @@
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 
   // ---------- 연필 커서: 종이 위에서는 마우스 대신 지금 쥔 연필이 따라다니며 심 끝으로 씀 (사용자 요청) ----------
-  // 상점 사진에서 연필 + 반짝임·후광만 오려 낸 투명 PNG (assets/pen_{등급}.png, tools/cutout_pencils.py). tip = 그림 속 심 끝, angle = 사진 속 연필 기울기
-  const PEN_IMG = {"0": {"tipX": 0.5, "tipY": 36.8, "angle": -8.3, "w": 204, "h": 39}, "1": {"tipX": -4.5, "tipY": 33.4, "angle": -7.7, "w": 199, "h": 36}, "2": {"tipX": 1.5, "tipY": 56.8, "angle": -12.9, "w": 207, "h": 61}, "3": {"tipX": 1.2, "tipY": 57.9, "angle": -13.1, "w": 206, "h": 62}, "4": {"tipX": 0.7, "tipY": 86.1, "angle": -13.6, "w": 214, "h": 87}, "5": {"tipX": 1.5, "tipY": 98.8, "angle": -12.7, "w": 218, "h": 130}};
-  const PEN_TILT = -38, PEN_SCALE = 0.8;
+  // 코드로 그린 SVG(가로, 심 끝이 왼쪽 가운데) → 비스듬히 기울여 심 끝을 마우스 위치에 맞춤. 등급마다 상점 사진과 같은 생김새
+  const PEN_LOOK = [
+    { L: 46, body: '#d6a42a', eraser: '#3a3530', chips: true },               // 볼품없는 연필: 짧고 칠이 벗겨짐
+    { L: 54, body: '#dfae2c', eraser: '#e89aa0' },                            // 연필: 깨끗한 몽당연필
+    { L: 84, body: '#f4c531', eraser: '#f0a3ab', gloss: true },               // 괜찮은 연필
+    { L: 84, body: '#1d6a46', eraser: '#7c7c80', gloss: true, band: true },   // 제법 좋은 연필
+    { L: 88, body: '#121212', cap: 'gold', gloss: true, filigree: true },     // 고급연필
+    { L: 88, body: 'url(#wg)', cap: 'diamond', gloss: true },                 // 깨지지 않은 연필
+  ];
+  function pencilSVG(g) {
+    const P = PEN_LOOK[g], L = P.L, x1 = 26 + L, W = x1 + 22;
+    let body = `<rect x="26" y="3" width="${L}" height="18" fill="${P.body}"/>`
+      + `<rect x="26" y="15" width="${L}" height="6" fill="rgba(0,0,0,.22)"/><line x1="26" y1="9" x2="${x1}" y2="9" stroke="rgba(0,0,0,.18)"/>`;
+    if (P.gloss) body += `<rect x="28" y="5" width="${L - 4}" height="2.4" rx="1.2" fill="rgba(255,255,255,.55)"/>`;
+    if (P.chips) body += [0.15, 0.4, 0.62, 0.85].map((f, i) => `<path d="M${26 + L * f} ${4 + (i % 2) * 7} l6 1 l-2 5 l-6 -1z" fill="#8a6a3a"/>`).join('');
+    if (P.band) body += `<rect x="${x1 - 9}" y="3" width="3" height="18" fill="#d9b24a"/>`;
+    if (P.filigree) body += `<path d="M30 12 q6 -6 12 0 t12 0 t12 0 t12 0 t12 0" fill="none" stroke="#d9b24a" stroke-width="1.3"/>`;
+    let end;
+    if (P.cap === 'gold') end = `<rect x="${x1}" y="2.5" width="18" height="19" rx="3" fill="url(#gold)"/><circle cx="${x1 + 9}" cy="12" r="3" fill="#c0122c"/>`;
+    else if (P.cap === 'diamond') end = `<rect x="${x1}" y="4" width="6" height="16" fill="url(#gold)"/><path d="M${x1 + 6} 12 l6 -9 h6 l4 9 l-4 9 h-6z" fill="#eaf6ff" stroke="#9fd0ff" stroke-width=".8"/>`;
+    else end = `<rect x="${x1}" y="2.5" width="11" height="19" fill="url(#gold)"/>`
+      + [3, 6, 9].map(d => `<line x1="${x1 + d}" y1="2.5" x2="${x1 + d}" y2="21.5" stroke="rgba(90,60,10,.5)"/>`).join('')
+      + `<rect x="${x1 + 11}" y="3.5" width="10" height="17" rx="3" fill="${P.eraser}"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 24" width="${W * 1.15}" height="${24 * 1.15}">
+      <defs><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6dc86"/><stop offset=".5" stop-color="#b8892c"/><stop offset="1" stop-color="#7a5714"/></linearGradient>
+      <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#efe3c4"/><stop offset="1" stop-color="#bfa978"/></linearGradient></defs>
+      <polygon points="0,12 8,9 8,15" fill="#2e2b28"/><polygon points="8,9 26,3 26,21 8,15" fill="#e3bb8a"/>${body}${end}</svg>`;
+  }
   let penShown = -1;
   function movePen(e) {
     const pen = $('penCursor'), r = cv.getBoundingClientRect();
@@ -197,12 +222,8 @@
       && ['shop', 'result', 'death'].every(id => $(id).classList.contains('hidden'));
     pen.classList.toggle('hidden', !ok); cv.style.cursor = ok ? 'none' : '';
     if (!ok) return;
-    const m = PEN_IMG[S.hand];
-    if (penShown !== S.hand) {
-      pen.innerHTML = `<img src="assets/pen_${S.hand}.png" alt="" width="${m.w * PEN_SCALE}" height="${m.h * PEN_SCALE}">`;
-      pen.className = 'g' + S.hand; pen.style.transformOrigin = `${m.tipX * PEN_SCALE}px ${m.tipY * PEN_SCALE}px`; penShown = S.hand;
-    }
-    pen.style.transform = `translate(${e.clientX - m.tipX * PEN_SCALE}px, ${e.clientY - m.tipY * PEN_SCALE}px) rotate(${PEN_TILT - m.angle}deg)${cur ? ' scale(.96)' : ''}`;
+    if (penShown !== S.hand) { pen.innerHTML = pencilSVG(S.hand); pen.className = 'g' + S.hand; penShown = S.hand; }
+    pen.style.transform = `translate(${e.clientX}px, ${e.clientY - 13.8}px) rotate(-38deg)${cur ? ' scale(.96)' : ''}`;
   }
   addEventListener('pointermove', movePen); addEventListener('pointerdown', movePen); addEventListener('pointerup', movePen);
 
