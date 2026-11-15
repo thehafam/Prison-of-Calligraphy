@@ -269,8 +269,9 @@
     img.style.width = r.width + 'px'; img.style.height = r.height + 'px';
     img.style.transform = `translate(${r.left}px,${r.top}px)`;
     $('stack').appendChild(img);
-    const k = 0.3, w = r.width * k;
-    const x = Math.min(r.right + 24, innerWidth - w - 12) + Math.random() * 8 - 4, y = r.bottom - w - i * 4;
+    // 더미 자리: 화면 오른쪽 아래, 상점 버튼 위의 고정 칸(폭 160·높이 110px 안에 줄여 넣음). 현재 종이와 겹치면 종이 뒤로 감
+    const COL = 160, MAXH = 110, k = Math.min(COL / r.width, MAXH / r.height), w = r.width * k, h = r.height * k;
+    const x = innerWidth - 20 - COL + (COL - w) / 2 + Math.random() * 8 - 4, y = innerHeight - 80 - h - Math.min(i, 20) * 4;
     const rot = Math.random() * 10 - 5;
     requestAnimationFrame(() => requestAnimationFrame(() => { img.style.transform = `translate(${x}px,${y}px) scale(${k}) rotate(${rot}deg)`; }));
     sheet = null; $('paperWrap').style.visibility = 'hidden';
