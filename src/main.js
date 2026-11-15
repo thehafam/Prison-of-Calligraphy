@@ -210,6 +210,7 @@
       S.busy = true;
       setTimeout(() => {
         toast(t('freePencil')); S.lives--; S.busy = false; takePencil(0);
+        if (S.lives > 0) saveGame(); // 단계 도중 연필값으로 잃은 목숨도 바로 저장 (껐다 켜도 되살아나지 않게)
         if (S.lives <= 0) gameOver();
       }, SWAP_MS);
     }
