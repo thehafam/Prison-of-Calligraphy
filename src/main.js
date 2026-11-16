@@ -81,7 +81,7 @@
     // 획 순서 화살표·번호
     if (sheet.guide) {
       sheet.labels = sheet.labels || placeLabels(sheet.tpl, g, sheet.w);
-      const next = Math.min(sheet.tpl.length - 1, cur ? sheet.strokes.length - 1 : sheet.strokes.length); // 지금 쓸 획
+      const next = Math.max(0, Math.min(sheet.tpl.length - 1, cur ? sheet.strokes.length - 1 : sheet.strokes.length)); // 지금 쓸 획
       sheet.tpl.forEach((s, i) => { if (i !== next) arrow(s, i + 1, g, false); });
       arrow(sheet.tpl[next], next + 1, g, true);
     }
@@ -140,6 +140,7 @@
     setPaper(w);
     const guide = S.mode !== 'stage' || stageDef().guide !== false;
     const chars = [...key].filter(ch => ch !== ' ' && ch !== '.' && ch !== '\n').length;
+    cur = null; // 앞 종이에서 쥐고 있던 획이 새 종이로 넘어오지 않게 (넘어오면 새 종이의 잉크가 부풀어 연필이 곧바로 부러졌음)
     sheet = { lang, key, tpl, g, w, guide, chars, base: S.mode === 'stage' ? stageDef().pay : 1, strokes: [], ink: 0, breakAt: Infinity };
     // 파손: 글자 수에 비례해 쓰는 도중 아무 순간에 (planBreaks, 튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
@@ -191,7 +192,7 @@
     cur = [pt(e)]; sheet.strokes.push(cur); draw();
   });
   cv.addEventListener('pointermove', e => {
-    if (!cur) return;
+    if (!cur || !sheet || !sheet.strokes.includes(cur)) { cur = null; return; }
     const p = pt(e), q = cur[cur.length - 1], d = Math.hypot(p[0] - q[0], p[1] - q[1]);
     if (d < 0.4) return;
     cur.push(p); sheet.ink += d; draw();
