@@ -59,7 +59,7 @@
   const S = { mode: 'title', stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0],
     timeLeft: 0, stack: [], passed: 0, earned: 0, running: false, busy: false };
   // 튜토리얼이 조종하는 고리: 쓰기 허용·상납·연필 파손·상점 닫힘
-  const T = { allowDraw: false, allowShop: false, onSubmit: null, onBreak: null, onShopClose: null };
+  const T = { allowDraw: false, allowShop: true, onShopOpen: null, onSubmit: null, onBreak: null, onShopClose: null };
   let sheet = null, cur = null, timerId = null;
 
   // ---------- 종이 그리기 ----------
@@ -580,7 +580,7 @@
     const g = which === 'game';
     $('bg').classList.toggle('dim', !g);
     $('title').classList.toggle('hidden', g);
-    $('deskArea').classList.toggle('hidden', !g); $('btnShop').classList.toggle('hidden', !g);
+    $('deskArea').classList.toggle('hidden', !g); $('btnShop').classList.toggle('hidden', !g || !T.allowShop); // 튜토리얼에선 교도관이 상점을 알려 줄 때까지 숨김
     $('hud').classList.toggle('hidden', !g || S.mode !== 'stage');
     if (g) fit();
   }
@@ -637,7 +637,7 @@
     else if (S.mode === 'tutorial' && T.allowDraw) { sheet.strokes = []; sheet.ink = 0; draw(); } // 튜토리얼: 같은 글자를 지우고 다시
   };
   // 상점은 연필이 부러지지 않았어도 게임 화면(튜토리얼·단계·대사·정산 중)이면 언제든 열림 (사용자 확정)
-  $('btnShop').onclick = () => { if (S.mode !== 'title' && $('death').classList.contains('hidden')) openShop(); };
+  $('btnShop').onclick = () => { if (T.allowShop && S.mode !== 'title' && $('death').classList.contains('hidden')) { openShop(); if (T.onShopOpen) T.onShopOpen(); } };
   $('btnShopClose').onclick = () => { $('shop').classList.add('hidden'); if (T.onShopClose) T.onShopClose(); };
   // 시작: 눈이 감기듯 검게 닫힌 뒤 튜토리얼(눈을 뜨는 장면)로
   const fadeTo = fn => { $('fadeBlack').classList.add('on'); setTimeout(() => { fn(); setTimeout(() => $('fadeBlack').classList.remove('on'), 300); }, 900); };

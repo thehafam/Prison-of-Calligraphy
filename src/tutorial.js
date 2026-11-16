@@ -51,6 +51,7 @@
     const g = G();
     try {
       g.S.mode = 'tutorial'; writing(false);
+      g.T.allowShop = false; $('btnShop').classList.add('hidden'); // 교도관이 알려 줄 때까지 상점 잠김
       g.show('game'); $('paperWrap').style.visibility = 'hidden'; $('stack').innerHTML = '';
       // 1. 검은 화면에서 눈을 뜸
       $('eyes').classList.remove('hidden', 'open'); $('bg').classList.add('blurry');
@@ -87,9 +88,14 @@
       // 6. 규칙·난이도
       for (const k of ['tu_rules1', 'tu_rules2', 'tu_rules3']) await step(say(k));
       // 7. 상점
+      // 상점은 튜토리얼 이때까지 쓸 수 없음 → 교도관이 알려 주며 단추를 직접 눌러 보게 함 (사용자 요청)
       await step(say('tu_shop'));
-      // 상점을 열어 둔 채 위에 대사를 띄워 아이템·스킬 쓰는 법을 설명 (사용자 요청). 설명 중엔 닫기를 숨김
-      g.T.allowShop = true; g.S.shopTab = 'items'; g.openShop();
+      g.T.allowShop = true; g.S.shopTab = 'items';
+      $('btnShop').classList.remove('hidden'); $('btnShop').classList.add('new');
+      say('tu_shopPress', null, false);
+      await step(new Promise(r => { g.T.onShopOpen = r; }));
+      g.T.onShopOpen = null; $('btnShop').classList.remove('new');
+      // 열린 상점 위에 대사를 띄워 설명. 설명 중엔 닫기를 숨김
       $('dlg').classList.add('over'); $('btnShopClose').style.visibility = 'hidden';
       await step(say('tu_shopItems'));
       g.S.shopTab = 'skills'; g.openShop();
@@ -103,7 +109,7 @@
       // 볼품없는 연필 세 자루(손에 하나, 여분 둘)와 경고
       g.S.hand = 0; g.S.spares[0] += 2;
       await step(say('tu_pencils1')); await step(say('tu_pencils2')); await step(say('tu_go'));
-      $('dlg').classList.add('hidden'); g.T.allowShop = false; g.T.onBreak = null;
+      $('dlg').classList.add('hidden'); g.T.onBreak = null;
       g.saveGame(); // 튜토리얼을 마침 → 1단계부터 이어하기
       g.startStage();
     } catch (e) { if (e !== STOP) throw e; }
@@ -111,7 +117,7 @@
 
   function stop() {
     token++; clickResolve = null;
-    const T = G().T; Object.assign(T, { allowDraw: false, allowShop: false, onSubmit: null, onBreak: null, onShopClose: null });
+    const T = G().T; Object.assign(T, { allowDraw: false, allowShop: true, onShopOpen: null, onSubmit: null, onBreak: null, onShopClose: null });
     $('dlg').classList.add('hidden'); $('eyes').classList.add('hidden'); $('bg').classList.remove('blurry');
   }
 
