@@ -339,10 +339,15 @@
     PENCILS.forEach((_, g) => {
       if (before[g] || !unlocked(g)) return;
       (S.fresh = S.fresh || []).push(g);
-      toast(t('pencilUnlocked', { name: t('pencils')[g] }));
+      notice(t('pencilUnlocked', { name: t('pencils')[g] }));
     });
     if (S.fresh && S.fresh.length) { $('btnShop').classList.add('new'); if (!$('shop').classList.contains('hidden')) renderShop(); }
   }
+  // 확인 버튼을 눌러야 닫히는 알림 (사용자 요청: 해금 알림). 여러 개면 차례로
+  const noticeQ = [];
+  function notice(m) { noticeQ.push(m); if (noticeQ.length === 1) showNotice(); }
+  function showNotice() { $('noticeText').textContent = noticeQ[0]; $('notice').classList.remove('hidden'); }
+  $('btnNotice').onclick = () => { noticeQ.shift(); if (noticeQ.length) showNotice(); else $('notice').classList.add('hidden'); };
   // 스킬 탭: 이름·설명(지금 → 다음 효과)·레벨 점·가격·업그레이드
   function renderSkills() {
     let h = `<tr><th></th><th>${t('skillEffect')}</th><th>${t('skillLevel')}</th><th>${t('price')}</th><th></th></tr>`;

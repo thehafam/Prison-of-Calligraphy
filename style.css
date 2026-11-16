@@ -167,3 +167,6 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 .newtag { font-size: .7em; padding: .05em .4em; border-radius: .3em; background: #c9a35a; color: #2a1d10; vertical-align: middle; }
 @keyframes newPulse { 50% { box-shadow: 0 0 0 2px #e8c46a, 0 0 4px #e8c46a; } }
 @media (prefers-reduced-motion: reduce) { #btnShop.new, #shopTabs button.new { animation: none; } }
+#notice { position: absolute; z-index: 14; left: 50%; top: 40%; transform: translate(-50%, -50%); min-width: min(420px, 90vw); background: #1e1812; border: 2px solid #c9a35a;
+  box-shadow: 0 0 0 100vmax rgba(0,0,0,.45), 0 0 24px #c9a35a88; padding: 1.2em 1.6em; border-radius: 6px; text-align: center; font-size: 1.15em; }
+#notice p { margin: 0 0 .9em; }
