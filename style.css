@@ -171,3 +171,10 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
   box-shadow: 0 0 0 100vmax rgba(0,0,0,.45), 0 0 24px #c9a35a88; padding: 1.2em 1.6em; border-radius: 6px; text-align: center; font-size: 1.15em; }
 #notice p { margin: 0 0 .9em; }
 #dlg.over { z-index: 13; } /* 튜토리얼: 열린 상점 위에서 설명 */
+/* 아침 일감 고르기 */
+#jobs { z-index: 8; }
+#jobTable { border-collapse: collapse; margin-top: .4em; }
+#jobTable th, #jobTable td { padding: .45em .8em; border-bottom: 1px solid #ffffff1a; text-align: center; }
+#jobTable td.jobname { text-align: left; }
+#jobTable tr.locked-job td { opacity: .45; }
+#result .btnrow { display: flex; gap: .8em; justify-content: center; }

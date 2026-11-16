@@ -12,7 +12,7 @@
   <div id="bg"></div>
 
   <header id="hud" class="hidden">
-    <span><b data-i18n="stage">Stage</b> <span id="hudStage">1</span></span>
+    <span><b data-i18n="stage">Day</b> <span id="hudStage">1</span></span>
     <span><b data-i18n="time">Time</b> <span id="hudTime">30</span></span>
     <span><b data-i18n="quota">Accepted</b> <span id="hudQuota">0/4</span></span>
     <span><b data-i18n="lives">Lives</b> <span id="hudLives">♥♥♥</span></span>
@@ -90,7 +90,14 @@
     <h2 id="resultTitle"></h2>
     <p id="resultText"></p>
     <div id="resultScores"></div>
-    <button id="btnResult"></button>
+    <div class="btnrow"><button id="btnResult"></button><button id="btnResult2" class="hidden"></button></div>
+  </section>
+
+  <!-- 아침: 오늘의 일감 고르기 -->
+  <section id="jobs" class="overlay hidden">
+    <h2 data-i18n="jobsTitle">Today's Work</h2>
+    <p id="jobsSub" class="sub"></p>
+    <table id="jobTable"></table>
   </section>
 </div>
 <script src="src/i18n.js"></script>

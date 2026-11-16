@@ -6,30 +6,23 @@
   // 필기구: 파손 확률 10%p씩 감소(사용자 확정, 고급연필 5%는 [임시], 깨지지 않은 연필 0%)
   const PRICES = [15, 25, 35, 70, 120, 300]; // 사용자 확정: 단단한 심 업그레이드로 해금하므로 조금 낮춤 [임시]
   const PENCILS = [0.40, 0.30, 0.20, 0.10, 0.05, 0].map((p, i) => ({ p, price: PRICES[i] }));
-  // 단계: 첫 단계 30초 4장 (이후 수치는 시험하며 조정)
-  // tier: letter 낱자 / word1 쉬운 단어 1(영어 3자·한글 한 글자) / word2 단어 2(영어 4~5자·한글 두 글자) / word3 단어 3(영어 6자·한글 받침) / word4 단어 4(영어 7자 이상·한글 겹받침·이중모음) / sent1 짧은 문장(두세 단어). 단어 단계 시간·장수는 [임시]
-  // 1~4단계는 두 단계씩 같은 묶음, 5단계부터는 한 단계마다 오름 (사용자 확정)
-  const STAGES = [{ time: 30, quota: 4, tier: 'letter' }, { time: 30, quota: 5, tier: 'letter' },
-    { time: 50, quota: 4, tier: 'word1' }, { time: 55, quota: 5, tier: 'word1' },
-    { time: 75, quota: 4, tier: 'word2' }, { time: 90, quota: 4, tier: 'word3' },
-    { time: 115, quota: 4, tier: 'word4', guide: false },
-    { time: 135, quota: 3, tier: 'sent1', guide: false },
-    { time: 200, quota: 3, tier: 'sent2', guide: false }, { time: 220, quota: 3, tier: 'sent3', guide: false }]; // 9·10단계 [임시: 시간·장수]
-  // 난이도가 오를 때 교도관의 설명 (guide: false = 7단계부터 획 순서 화살표·번호를 지움)
-  const TIER_TALK = {
-    word1: ['up_intro1', 'up_word1'],
-    word2: ['up_intro2', 'up_word2'],
-    word3: ['up_intro3', 'up_word3'],
-    word4: ['up_intro4', 'up_word4', 'up_noguide1', 'up_noguide2'],
-    sent1: ['up_intro5', 'up_sent1'],
-    sent2: ['up_intro6', 'up_sent2'],
-    sent3: ['up_intro7', 'up_sent3', 'up_last'],
-  };
+  // 하루 일감 (사용자 확정): 몸값 2000냥을 모으면 풀려남. 하루 = 5분, 아침마다 일감을 하나 골라 할당량을 채움
+  // 일감은 차례로 해금: 바로 아래 일감을 이틀 성공하면 다음 일감이 열림. 어려운 일감일수록 장당 값이 높음
+  const JOBS = [
+    { tier: 'letter', quota: 50, pay: 1 },   // 1 한글 자음·모음 / 알파벳 하나
+    { tier: 'word1', quota: 40, pay: 2 },    // 2 받침 없는 한 글자 / 영어 3자
+    { tier: 'syl3', quota: 30, pay: 4 },     // 3 받침 있는 한 글자 / 영어 4~5자
+    { tier: 'word3', quota: 20, pay: 8 },    // 4 받침 있는 두 음절 / 영어 6자
+    { tier: 'word5', quota: 15, pay: 15, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
+    { tier: 'sent1', quota: 10, pay: 25, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
+    { tier: 'sent23', quota: 5, pay: 60, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
+  ];
+  const DAY_SEC = 300, RANSOM = 2000, WINS_TO_UNLOCK = 2;
+  const jobOpen = i => i === 0 || ((S.wins || [])[i - 1] || 0) >= WINS_TO_UNLOCK;
   const PASS = 80;
   const fmtMoney = n => (Number.isInteger(n) ? String(n) : n.toFixed(1)); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
-  const baseOf = tpl => Math.max(1, Math.round((tpl.length / 3) * 1.5)); // 획 수 ÷ 3 × 1.5 (사용자 확정: 1.5배)
-  const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word') * WORD_NYANG + 1); // +1: 외상 도입과 함께 합격 종이마다 1냥 더 (사용자 확정)
+  const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word') * WORD_NYANG); // 장당 값 = 일감 값 + 완성도 + 좋은 말
   const CREDIT_BASE = 18;
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
   const BREAK_PER_CHAR = 0.25 * 2 / 3; // 사용자 확정: 예전(1/4)의 2/3
@@ -47,8 +40,8 @@
   const TOUGH_R = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 38]; // 볼품없는 연필 40%에서 줄어든 %p
   const FLOOR = [0.30, 0.20, 0.10, 0.05, 0.02, 0];  // 연필마다 내려갈 수 있는 바닥 (= 다음 연필의 원래 파손율, 고급연필은 2%)
   const topRate = () => 0.40 - TOUGH_R[lv('tough')] / 100;
-  const UNBREAK_STAGE = 7; // 깨지지 않은 연필: 8단계에 들어서면 살 수 있음 (사용자 확정)
-  const unlocked = g => g === 0 || (g === 5 ? S.mode === 'stage' && S.stage >= UNBREAK_STAGE : topRate() <= PENCILS[g].p + 1e-9);
+  const UNBREAK_JOB = 5; // 깨지지 않은 연필: 6번째 일감이 열리면 살 수 있음
+  const unlocked = g => g === 0 || (g === 5 ? jobOpen(UNBREAK_JOB) : topRate() <= PENCILS[g].p + 1e-9);
   const unlockLevel = g => TOUGH_R.findIndex(r => 0.40 - r / 100 <= PENCILS[g].p + 1e-9);
   const breakRate = g => (g === 5 ? 0 : Math.max(FLOOR[g], Math.min(PENCILS[g].p, topRate())));
   const skillMax = k => SKILLS[k].price.length;
@@ -147,7 +140,7 @@
     setPaper(w);
     const guide = S.mode !== 'stage' || stageDef().guide !== false;
     const chars = [...key].filter(ch => ch !== ' ' && ch !== '.' && ch !== '\n').length;
-    sheet = { lang, key, tpl, g, w, guide, chars, base: baseOf(tpl), strokes: [], ink: 0, breakAt: Infinity };
+    sheet = { lang, key, tpl, g, w, guide, chars, base: S.mode === 'stage' ? stageDef().pay : 1, strokes: [], ink: 0, breakAt: Infinity };
     // 파손: 글자 수에 비례해 쓰는 도중 아무 순간에 (planBreaks, 튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
     sheet.len = len;
@@ -327,7 +320,7 @@
       const act = open
         ? `<button data-buy="${g}" ${S.money < pc.price ? 'disabled' : ''}>${t('buy')}</button>
            <button data-use="${g}" ${S.spares[g] && S.hand !== g ? '' : 'disabled'}>${t('use')}</button>`
-        : `<span class="lockwhy">${g === 5 ? t('unlockStage', { n: UNBREAK_STAGE + 1 }) : t('unlockTough', { n: unlockLevel(g) })}</span>`;
+        : `<span class="lockwhy">${g === 5 ? t('unlockStage', { n: UNBREAK_JOB + 1 }) : t('unlockTough', { n: unlockLevel(g) })}</span>`;
       const fresh = open && S.fresh && S.fresh.includes(g);
       h += `<tr class="${open ? (fresh ? 'fresh' : '') : 'locked'}"><td>${icon}${names[g]}${fresh ? ` <span class="newtag">${t('newTag')}</span>` : ''}</td><td>${rate}</td><td>${pc.price}</td><td>${open ? own : '—'}</td><td>${act}</td></tr>`;
     });
@@ -416,13 +409,7 @@
     const scores = S.stack.map(x => PC.score(x.tpl, x.strokes, 7 * x.g));
     const pay = scores.map((v, i) => rewardOf(v, S.stack[i].base));
     S.passed = scores.filter(v => v >= PASS).length; S.earned = pay.reduce((a, b) => a + b, 0); S.money += S.earned;
-    // 할당 초과 보너스 (사용자 확정): 단계를 통과하면 할당량을 넘겨 합격한 종이마다 그 종이 기본급의 절반
-    S.bonus = 0;
-    if (S.mode === 'stage') {
-      const okBases = S.stack.filter((x, i) => scores[i] >= PASS).map(x => x.base), q = stageDef().quota;
-      if (okBases.length > q) S.bonus = okBases.slice(q).reduce((a, b) => a + b / 2, 0);
-      S.money += S.bonus;
-    }
+    S.bonus = 0; // 할당을 넘긴 장도 같은 값으로 받음
     $('resultScores').innerHTML = scores.map((v, i) => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}${pay[i] ? ` · +${pay[i]} <img class="coin" src="assets/coin.png" alt="">` : ''}</span>`).join('');
     S.stack = []; $('stack').innerHTML = '';
     return scores;
@@ -433,24 +420,47 @@
   }
 
   // ---------- 단계 ----------
-  const stageDef = () => STAGES[Math.min(S.stage, STAGES.length - 1)];
+  const stageDef = () => JOBS[S.job || 0];
   function startGame() {
-    Object.assign(S, { stage: 0, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null, skills: { clock: 0, hand: 0, word: 0 }, shopTab: 'items', debt: 0, credits: 0, fresh: [], unbreakNoted: false });
+    Object.assign(S, { stage: 0, job: 0, wins: JOBS.map(() => 0), endless: false, lives: 3, money: 0, hand: 0, spares: [0, 0, 0, 0, 0, 0], announced: null, skills: { clock: 0, hand: 0, word: 0 }, shopTab: 'items', debt: 0, credits: 0, fresh: [], unbreakNoted: false });
     PC.tutorial.run(); // 새 게임은 반드시 튜토리얼부터
   }
-  function startStage() {
-    // 깨지지 않은 연필은 UNBREAK_STAGE단계에 들어서는 순간 해금 → 알림
-    if (S.stage >= UNBREAK_STAGE && !S.unbreakNoted) { S.unbreakNoted = true; const m = S.mode; S.mode = 'stage'; noteUnlocks(PENCILS.map((_, g) => g !== 5 && unlocked(g))); S.mode = m; }
-    // 묶음(tier)이 바뀌는 단계에 처음 들어서면: 교도관이 새 난이도를 설명한 뒤 시작 (종이 없이, 시간은 그 뒤부터)
-    const def = stageDef(), prev = STAGES[S.stage - 1];
-    if (prev && prev.tier !== def.tier && S.announced !== def.tier) {
-      S.announced = def.tier;
-      Object.assign(S, { mode: 'stage', running: false, stack: [], timeLeft: def.time });
-      $('stack').innerHTML = ''; show('game'); $('controls').style.visibility = 'hidden';
-      sheet = null; $('paperWrap').style.visibility = 'hidden'; hud(); // 설명하는 동안 종이는 나오지 않음 (사용자 확정)
-      return PC.tutorial.talk(TIER_TALK[def.tier] || [], startStage);
+  // 아침: 오늘의 일감 고르기 (무한 모드는 무작위)
+  function pickJob() {
+    Object.assign(S, { mode: 'stage', running: false, stack: [], timeLeft: DAY_SEC + lv('clock') * CLOCK_SEC });
+    $('stack').innerHTML = ''; show('game'); $('controls').style.visibility = 'hidden';
+    sheet = null; $('paperWrap').style.visibility = 'hidden'; hud();
+    $('jobsSub').innerHTML = t('jobsSub', { d: S.stage + 1, m: fmtMoney(S.money), r: RANSOM });
+    const names = t('jobNames');
+    let h = `<tr><th></th><th>${t('jobQuota')}</th><th>${t('jobPay')}</th><th>${t('jobDaily')}</th><th></th></tr>`;
+    JOBS.forEach((jb, i) => {
+      const open = jobOpen(i);
+      const act = open ? `<button data-job="${i}">${t('take')}</button>`
+        : `<span class="lockwhy">${t('jobLock', { n: (S.wins[i - 1] || 0) })}</span>`;
+      h += `<tr class="${open ? '' : 'locked-job'}"><td class="jobname">${i + 1}. ${names[i]}</td><td>${jb.quota}</td><td>${jb.pay}</td><td>${jb.quota * jb.pay}</td><td>${act}</td></tr>`;
+    });
+    $('jobTable').innerHTML = h;
+    $('jobs').classList.remove('hidden');
+  }
+  $('jobTable').addEventListener('click', e => {
+    const b = e.target.closest('button[data-job]'); if (!b) return;
+    $('jobs').classList.add('hidden'); startStage(+b.dataset.job);
+  });
+  function startStage(jobIdx) {
+    if (jobIdx === undefined) {
+      if (!S.endless) return pickJob();
+      jobIdx = Math.floor(Math.random() * JOBS.length); // 무한 모드: 낱자부터 문장까지 무작위
     }
-    Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: stageDef().time + lv('clock') * CLOCK_SEC, running: true, busy: false, bonusTime: 0 });
+    S.job = jobIdx;
+    // 화살표·번호가 없는 일감을 처음 받으면 교도관이 알려 줌 (종이 없이)
+    if (stageDef().guide === false && S.announced !== 'noguide') {
+      S.announced = 'noguide';
+      Object.assign(S, { mode: 'stage', running: false, stack: [], timeLeft: DAY_SEC });
+      $('stack').innerHTML = ''; show('game'); $('controls').style.visibility = 'hidden';
+      sheet = null; $('paperWrap').style.visibility = 'hidden'; hud();
+      return PC.tutorial.talk(['up_noguide1', 'up_noguide2'], () => startStage(jobIdx));
+    }
+    Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: DAY_SEC + lv('clock') * CLOCK_SEC, running: true, busy: false, bonusTime: 0 });
     $('stack').innerHTML = ''; $('controls').style.visibility = '';
     show('game'); newSheet(); hud();
     const t0 = performance.now(), total = S.timeLeft;
@@ -464,7 +474,7 @@
   function endStage() {
     clearInterval(timerId); S.running = false; cur = null;
     $('shop').classList.add('hidden');
-    // 시간이 끝났을 때 쓰던 종이도 글씨가 있으면 함께 냄 [임시]
+    // 시간이 끝났을 때 쓰던 종이도 글씨가 있으면 함께 냄
     if (sheet && sheet.strokes.length && !flying) toStack();
     sheet = null; $('paperWrap').style.visibility = 'hidden'; $('controls').style.visibility = 'hidden';
     vacuum(judge);
@@ -473,27 +483,45 @@
     settle();
     const q = stageDef().quota, clear = S.passed >= q;
     // 외상 갚기: 정산한 돈에서 빼 감. 다 못 갚으면 목숨 하나로 대신 치르고 외상은 없어짐
-    let debtLine = '';
+    let debtLine = '', jobLine = '';
     if (S.debt > 0) {
       if (S.money >= S.debt) { S.money -= S.debt; debtLine = t('debtPaid', { d: fmtMoney(S.debt) }); }
       else { S.lives--; debtLine = t('debtLife', { d: fmtMoney(S.debt) }); }
       S.debt = 0;
     }
     if (!clear) S.lives--;
+    else if (!S.endless) {
+      // 이틀 성공하면 다음 일감이 열림 (6번째 일감이 열리면 깨지지 않은 연필도)
+      const before = PENCILS.map((_, g) => unlocked(g));
+      S.wins[S.job]++;
+      if (S.wins[S.job] === WINS_TO_UNLOCK && S.job + 1 < JOBS.length) jobLine = t('jobUnlocked', { name: t('jobNames')[S.job + 1] });
+      noteUnlocks(before);
+    }
     hud();
-    const txt = t('stageResult', { n: S.passed, q, m: fmtMoney(S.earned) }) + (S.bonus ? '\n' + t('bonusLine', { b: fmtMoney(S.bonus) }) : '') + (debtLine ? '\n' + debtLine : '');
+    const txt = t('stageResult', { n: S.passed, q, m: fmtMoney(S.earned) }) + (jobLine ? '\n' + jobLine : '') + (debtLine ? '\n' + debtLine : '');
     if (S.lives <= 0) return gameOver();
-    const last = S.stage >= STAGES.length - 1 && clear;
-    if (last) saveGame('ended');               // 끝까지 깸 → 이어하기는 보이되 못 누름
-    else { if (clear) S.stage++; saveGame(); } // 결과가 나오는 순간 저장 (실패해 잃은 목숨도 저장)
-    result(clear ? t('stageClear') : t('stageFail'), txt + (last ? '\n' + t('protoEnd') : ''),
-      last ? t('restart') : t('nextStage'), () => { if (last) toTitle(); else startStage(); });
+    S.stage++; saveGame(); // 하루가 끝나는 순간 저장 (실패해 잃은 목숨도 저장)
+    const free = !S.endless && S.money >= RANSOM; // 몸값을 다 모음 → 교도관이 풀어 주겠다고 함
+    result(clear ? t('stageClear') : t('stageFail'), txt, free ? t('next') : t('nextStage'), () => (free ? release() : startStage()));
+  }
+  // 몸값을 모음: 남아서 더 쓸지(무한 모드) / 나갈지(엔딩)
+  function release() {
+    show('game'); $('controls').style.visibility = 'hidden'; sheet = null; $('paperWrap').style.visibility = 'hidden';
+    PC.tutorial.talk(['rel_1', 'rel_2'], () => {
+      result(t('relTitle'), t('relAsk'), t('choiceLeave'), () => {
+        saveGame('ended'); // 엔딩 → 이어하기는 보이되 못 누름
+        result(t('endTitle'), t('endText', { d: S.stage, m: fmtMoney(S.money) }), t('restart'), toTitle);
+      }, t('choiceStay'), () => {
+        S.endless = true; saveGame();
+        PC.tutorial.talk(['rel_stay'], () => startStage());
+      });
+    });
   }
   // 죽음: 교도관의 마지막 말 → 복면이 씌워지듯 암전 → 쿵(발판이 꺼짐) → 떨어지는 소리 → "당신은 죽었습니다."
   function gameOver() {
     saveGame('ended'); // 죽음도 엔딩 → 이어하기는 보이되 못 누름
     clearInterval(timerId); S.running = false; S.busy = true; cur = null;
-    ['shop', 'result'].forEach(id => $(id).classList.add('hidden'));
+    ['shop', 'result', 'jobs'].forEach(id => $(id).classList.add('hidden'));
     $('controls').style.visibility = 'hidden'; $('toast').classList.remove('show'); $('btnShop').classList.add('hidden');
     const wait = ms => new Promise(r => setTimeout(r, ms));
     PC.tutorial.talk(['d_1', 'd_2', 'd_3'], async () => {
@@ -508,10 +536,12 @@
       $('death').classList.remove('hidden');
     });
   }
-  function result(title, text, btn, fn) {
+  function result(title, text, btn, fn, btn2, fn2) {
     $('resultTitle').textContent = title; $('resultText').textContent = text;
     const b = $('btnResult'); b.textContent = btn;
     b.onclick = () => { $('result').classList.add('hidden'); fn(); };
+    const b2 = $('btnResult2'); b2.classList.toggle('hidden', !btn2); b2.textContent = btn2 || '';
+    b2.onclick = () => { $('result').classList.add('hidden'); fn2(); };
     $('result').classList.remove('hidden');
   }
 
@@ -519,7 +549,7 @@
   // status: progress = 이어하기 가능 / ended = 엔딩을 봄(죽음 포함) → 이어하기 보이되 비활성 / 기록 없음 → 이어하기 숨김
   const SAVE_KEY = 'prison_of_calligraphy_save_v1';
   function saveGame(status = 'progress') {
-    const d = { status, stage: S.stage, lives: S.lives, money: S.money, hand: S.hand, spares: S.spares, announced: S.announced || null, skills: S.skills, debt: S.debt || 0, credits: S.credits || 0 };
+    const d = { status, stage: S.stage, job: S.job || 0, wins: S.wins, endless: !!S.endless, unbreakNoted: !!S.unbreakNoted, lives: S.lives, money: S.money, hand: S.hand, spares: S.spares, announced: S.announced || null, skills: S.skills, debt: S.debt || 0, credits: S.credits || 0 };
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (e) {}
     updateContinue();
   }
@@ -530,7 +560,7 @@
   }
   function continueGame() {
     const sv = loadSave(); if (!sv || sv.status !== 'progress') return;
-    Object.assign(S, { stage: sv.stage, lives: sv.lives, money: sv.money, hand: sv.hand ?? 0, spares: sv.spares, announced: sv.announced, skills: sv.skills || { clock: 0, hand: 0, word: 0 }, debt: sv.debt || 0, credits: sv.credits || 0, mode: 'stage' });
+    Object.assign(S, { stage: sv.stage, job: sv.job || 0, wins: sv.wins || JOBS.map(() => 0), endless: !!sv.endless, unbreakNoted: !!sv.unbreakNoted, lives: sv.lives, money: sv.money, hand: sv.hand ?? 0, spares: sv.spares, announced: sv.announced, skills: sv.skills || { clock: 0, hand: 0, word: 0 }, debt: sv.debt || 0, credits: sv.credits || 0, mode: 'stage' });
     if (S.hand === null && !S.spares.some(n => n)) S.hand = 0; // 저장 때 손이 비어 있었으면 볼품없는 연필 하나
     startStage();
   }
@@ -587,7 +617,7 @@
   function toTitle() {
     clearInterval(timerId); S.mode = 'title'; S.running = false; sheet = null;
     $('stack').innerHTML = ''; PC.tutorial.stop(); show('title'); playTitle(); updateContinue();
-    ['hood', 'death', 'shop'].forEach(id => $(id).classList.add('hidden')); $('hood').classList.remove('drop'); S.busy = false;
+    ['hood', 'death', 'shop', 'jobs', 'result'].forEach(id => $(id).classList.add('hidden')); $('hood').classList.remove('drop'); S.busy = false;
   }
   function hud() {
     if (S.mode !== 'stage') return;
@@ -595,7 +625,7 @@
     $('hudTime').textContent = S.timeLeft.toFixed(1);
     $('hudQuota').textContent = `${S.stack.length} / ${stageDef().quota}`;
     $('hudLives').textContent = '♥'.repeat(Math.max(0, S.lives)) + '♡'.repeat(Math.max(0, 3 - S.lives));
-    $('hudMoney').textContent = fmtMoney(S.money) + (S.debt ? ` (${t('debtShort')} ${fmtMoney(S.debt)})` : '');
+    $('hudMoney').textContent = fmtMoney(S.money) + (S.endless ? '' : ` / ${RANSOM}`) + (S.debt ? ` (${t('debtShort')} ${fmtMoney(S.debt)})` : '');
     const spare = S.spares.reduce((a, b) => a + b, 0);
     $('hudPencil').textContent = (S.hand === null ? t('noPencil') : t('pencils')[S.hand]) + (spare ? ` (+${spare} ${t('spares')})` : '');
   }
@@ -650,6 +680,6 @@
 
   PC.setLang(PC.getLang());
   show('title'); playTitle(); updateContinue();
-  PC.game = { S, T, PENCILS, PASS, get sheet() { return sheet; }, get flying() { return flying; },
+  PC.game = { S, T, endStage, release, JOBS, PENCILS, PASS, get sheet() { return sheet; }, get flying() { return flying; },
     saveGame, newSheet, toStack, vacuum, settle, pop, toast, result, openShop, show, startGame, startStage, endStage, draw, hud };
 })();

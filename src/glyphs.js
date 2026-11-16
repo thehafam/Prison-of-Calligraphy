@@ -152,7 +152,7 @@
   const EN_K = 0.75, KO_K = 0.6;
   const SENT = 0.85; // 문장은 단어보다 조금 작게 (문장 단계 안에서는 늘 같은 크기)
   const DOT = { en: [[[50, 78], [50, 80.5]]], ko: [[[50, 84], [50, 86.5]]] }; // 마침표
-  const glyphOf = (lang, ch) => (ch === ' ' ? null : ch === '.' ? DOT[lang] : GLYPHS[lang][ch] || buildSyllable(ch));
+  const glyphOf = (lang, ch) => (ch === ' ' ? null : ch === '.' ? DOT[lang] : GLYPHS[lang][ch] || (lang === 'ko' && VOWELS[ch] && !/[가-힣]/.test(ch) ? VOWELS[ch].s : buildSyllable(ch))); // 모음 낱자는 모음 획 그대로
   const isSentence = key => /[ .]/.test(key);
   const buildWord = w => buildRow([...w].map(ch => glyphOf('en', ch)), 12, 55, EN_K * (isSentence(w) ? SENT : 1));
   const buildKoWord = w => buildRow([...w].map(ch => glyphOf('ko', ch)), 10, 50, KO_K * (isSentence(w) ? SENT : 1)); // 낱자 자음은 음절 칸 그대로
@@ -175,9 +175,11 @@
 
   // 단계별 묶음 (tier). 낱자 → 쉬운 단어 1 (영어 짧은 단어 / 한글 자모를 합친 한 글자). 이후 단계는 추후
   const KO_CONS = [...'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ']; // 자음 14 × 모음 10(ㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ) = 140 음절
+  const BASIC_V = [...'ㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ'], BATCHIM = [...'ㄱㄴㄷㄹㅁㅂㅅㅇ'];
+  const syllableJ = (c, v, j) => String.fromCharCode(syllable(c, v).charCodeAt(0) + JONG.indexOf(j));
   const POOLS = {
     letter: {
-      ko: KO_CONS,
+      ko: [...KO_CONS, ...BASIC_V], // 자음 14 + 기본 모음 10 (일감 1)
       en: [...'abcdefghijklmnopqrstuvwxyz', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'], // 소문자·대문자 52자
     },
     word1: {
@@ -207,6 +209,18 @@
       en: ['library', 'freedom', 'whisper', 'journey', 'kitchen', 'picture', 'monster', 'morning', 'captain', 'silence', 'lantern', 'chapter',
         'mystery', 'prisoner', 'notebook', 'alphabet', 'sentence', 'midnight', 'knowledge', 'strength', 'beautiful', 'calligraphy'],
     },
+    // 일감 3: 한글 받침 있는 한 글자(자음 14 × 기본 모음 10 × 홑받침 8) / 영어 4~5자 단어
+    syl3: {
+      ko: KO_CONS.flatMap(c => BASIC_V.flatMap(v => BATCHIM.map(j => syllableJ(c, v, j)))),
+      en: null, // 아래에서 word2.en으로 채움
+    },
+    // 일감 5: 한글 받침 있는 세 음절 이상 단어 / 영어 7자 이상
+    word5: {
+      ko: ['도서관', '운동장', '박물관', '미술관', '할머니', '강아지', '고양이', '거북이', '호랑이', '다람쥐', '자전거', '냉장고', '컴퓨터', '비행기',
+        '눈사람', '손수건', '우체국', '신호등', '텔레비전', '바이올린', '봉숭아', '달팽이', '반딧불', '은하수', '보름달', '무궁화', '진달래', '초콜릿',
+        '햄버거', '선생님', '할아버지', '대한민국', '해돋이', '소나기', '등대지기', '별자리', '물고기', '책가방', '연필깎이', '감나무'],
+      en: null, // 아래에서 word4.en으로 채움
+    },
     // 짧은 문장: 두세 단어, 높으신 분들이 모을 만한 아름다운 문장 (사용자 확정) — 띄어쓰기 자리는 비우고 마침표까지
     sent1: {
       ko: ['별이 빛난다.', '꽃이 핀다.', '바람이 분다.', '달이 밝다.', '봄이 온다.', '노을이 진다.', '눈꽃이 핀다.', '하늘이 맑다.', '강물은 흐른다.', '시간은 흐른다.',
@@ -232,11 +246,14 @@
         'Hope remains.\nLight returns.', 'The sun sets.\nThe sky turns gold.'],
     },
   };
+  POOLS.syl3.en = POOLS.word2.en; POOLS.word5.en = POOLS.word4.en;
+  POOLS.word5.ko = POOLS.word5.ko.filter(w => [...w].every(canBuild)); // 획 데이터로 만들 수 있는 단어만
+  POOLS.sent23 = { ko: [...POOLS.sent2.ko, ...POOLS.sent3.ko], en: [...POOLS.sent2.en, ...POOLS.sent3.en] }; // 일감 7: 긴 한 줄 + 두 줄 문장
   // 한글·영어를 반반으로 고르고 그 안에서 무작위. 영어 단어는 3분의 1 확률로 첫 글자를 대문자로 (Sky)
   const pick = (tier = 'letter') => {
     const P = POOLS[tier], lang = Math.random() < 0.5 ? 'ko' : 'en', list = P[lang];
     let key = list[Math.floor(Math.random() * list.length)];
-    if (lang === 'en' && tier.startsWith('word') && Math.random() < 1 / 3) key = key[0].toUpperCase() + key.slice(1);
+    if (lang === 'en' && (tier.startsWith('word') || tier === 'syl3') && Math.random() < 1 / 3) key = key[0].toUpperCase() + key.slice(1);
     return [lang, key];
   };
   window.PC = Object.assign(window.PC || {}, { GLYPHS, POOLS, build, pick, canBuild });
