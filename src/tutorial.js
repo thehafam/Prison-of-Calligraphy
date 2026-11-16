@@ -91,16 +91,15 @@
       // 상점을 열어 둔 채 위에 대사를 띄워 아이템·스킬 쓰는 법을 설명 (사용자 요청). 설명 중엔 닫기를 숨김
       g.T.allowShop = true; g.S.shopTab = 'items'; g.openShop();
       $('dlg').classList.add('over'); $('btnShopClose').style.visibility = 'hidden';
-      for (const k of ['tu_shopItems', 'tu_shopLock']) await step(say(k));
+      await step(say('tu_shopItems'));
       g.S.shopTab = 'skills'; g.openShop();
-      for (const k of ['tu_shopSkills', 'tu_shopSkills2', 'tu_shopSkills3']) await step(say(k));
+      await step(say('tu_shopSkills'));
       g.S.shopTab = 'items'; g.openShop();
       $('btnShopClose').style.visibility = '';
       say('tu_shopClose', null, false);
       await step(new Promise(r => { g.T.onShopClose = r; }));
       $('dlg').classList.remove('over');
       g.T.onShopClose = null;
-      await step(say('tu_shop2'));
       // 볼품없는 연필 세 자루(손에 하나, 여분 둘)와 경고
       g.S.hand = 0; g.S.spares[0] += 2;
       await step(say('tu_pencils1')); await step(say('tu_pencils2')); await step(say('tu_go'));
