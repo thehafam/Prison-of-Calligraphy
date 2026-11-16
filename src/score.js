@@ -2,6 +2,9 @@
 (function () {
   const DEF_TOL = 7; // 허용 거리 (100칸 기준, 작은 글자는 main.js에서 줄여 넘김)
   const W = { cover: 0.6, precise: 0.4, order: 0.4 }; // 모양 점수 × (0.6 + 0.4 × 순서·방향)
+  // 붉은 가이드 선에서 얼마나 떨어져 그었나 (사용자 요청: 회색 띠 안이라도 선에서 벗어나면 100점이 아님)
+  // 평균 거리가 허용 거리의 DEAD 이하면 감점 없음, 그 위로는 비율만큼 깎음 (띠 가장자리를 따라 그으면 약 90점)
+  const DEAD = 0.1, DEV = 0.28;
 
   const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
@@ -34,6 +37,11 @@
     return ok / from.length;
   }
 
+  function meanDist(from, to, cap) {
+    let sum = 0;
+    for (const p of from) { let m = cap; for (const q of to) { const d = dist(p, q); if (d < m) m = d; } sum += m; }
+    return from.length ? sum / from.length : cap;
+  }
   function score(template, strokes, TOL = DEF_TOL) {
     strokes = strokes.filter(s => s.length > 0);
     if (!strokes.length) return 0;
@@ -53,7 +61,8 @@
     }
     const order = (ord / template.length) * (n / Math.max(template.length, strokes.length));
     const shape = W.cover * cover + W.precise * precise;
-    return Math.round(100 * shape * (1 - W.order + W.order * order));
+    const dev = Math.max(0, meanDist(pPts, tPts, TOL * 1.5) / TOL - DEAD);
+    return Math.round(100 * shape * (1 - DEV * dev) * (1 - W.order + W.order * order));
   }
 
   window.PC = Object.assign(window.PC || {}, { score, resample, length });
