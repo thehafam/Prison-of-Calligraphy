@@ -40,8 +40,8 @@
   const TOUGH_R = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 38]; // 볼품없는 연필 40%에서 줄어든 %p
   const FLOOR = [0.30, 0.20, 0.10, 0.05, 0.02, 0];  // 연필마다 내려갈 수 있는 바닥 (= 다음 연필의 원래 파손율, 고급연필은 2%)
   const topRate = () => 0.40 - TOUGH_R[lv('tough')] / 100;
-  const UNBREAK_JOB = 5; // 깨지지 않은 연필 (사용자 확정): 고급연필이 해금된 채 6번째 일감이 열리면, 아니면 무한 모드에 들어서면
-  const unlocked = g => g === 0 || (g === 5 ? !!S.endless || (jobOpen(UNBREAK_JOB) && topRate() <= PENCILS[4].p + 1e-9) : topRate() <= PENCILS[g].p + 1e-9);
+  const UNBREAK_JOB = 5; // 깨지지 않은 연필 (사용자 확정): 고급연필이 해금된 채 6번째 일감이 열리면, 또는 단단한 심 15레벨, 또는 무한 모드에 들어서면
+  const unlocked = g => g === 0 || (g === 5 ? !!S.endless || lv('tough') >= skillMax('tough') || (jobOpen(UNBREAK_JOB) && topRate() <= PENCILS[4].p + 1e-9) : topRate() <= PENCILS[g].p + 1e-9);
   const unlockLevel = g => TOUGH_R.findIndex(r => 0.40 - r / 100 <= PENCILS[g].p + 1e-9);
   const breakRate = g => (g === 5 ? 0 : Math.max(FLOOR[g], Math.min(PENCILS[g].p, topRate())));
   const skillMax = k => SKILLS[k].price.length;
