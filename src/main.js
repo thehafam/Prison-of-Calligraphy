@@ -20,9 +20,9 @@
   const DAY_SEC = 300, RANSOM = 2000, WINS_TO_UNLOCK = 2;
   const jobOpen = i => i === 0 || ((S.wins || [])[i - 1] || 0) >= WINS_TO_UNLOCK;
   const PASS = 80;
-  const fmtMoney = n => (Number.isInteger(n) ? String(n) : n.toFixed(1)); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
+  const fmtMoney = n => String(Math.round(n * 100) / 100); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
-  const rewardOf = (score, base) => (score < PASS ? 0 : (score >= 100 ? base + 2 : score >= 90 ? base + 1 : base) + lv('word') * WORD_NYANG); // 장당 값 = 일감 값 + 완성도 + 좋은 말
+  const rewardOf = (score, base) => (score < PASS ? 0 : Math.round((base * (score >= 100 ? 1.2 : score >= 90 ? 1.15 : 1) + lv('word') * WORD_NYANG) * 100) / 100); // 장당 값 + 완성도(90점 +15%, 100점 +20%, 사용자 확정) + 좋은 말 // 장당 값 = 일감 값 + 완성도 + 좋은 말
   const CREDIT_BASE = 18;
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
   const BREAK_PER_CHAR = 0.25 * 2 / 3; // 사용자 확정: 예전(1/4)의 2/3
@@ -40,8 +40,8 @@
   const TOUGH_R = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 38]; // 볼품없는 연필 40%에서 줄어든 %p
   const FLOOR = [0.30, 0.20, 0.10, 0.05, 0.02, 0];  // 연필마다 내려갈 수 있는 바닥 (= 다음 연필의 원래 파손율, 고급연필은 2%)
   const topRate = () => 0.40 - TOUGH_R[lv('tough')] / 100;
-  const UNBREAK_JOB = 5; // 깨지지 않은 연필: 6번째 일감이 열리면 살 수 있음
-  const unlocked = g => g === 0 || (g === 5 ? jobOpen(UNBREAK_JOB) : topRate() <= PENCILS[g].p + 1e-9);
+  const UNBREAK_JOB = 5; // 깨지지 않은 연필 (사용자 확정): 고급연필이 해금된 채 6번째 일감이 열리면, 아니면 무한 모드에 들어서면
+  const unlocked = g => g === 0 || (g === 5 ? !!S.endless || (jobOpen(UNBREAK_JOB) && topRate() <= PENCILS[4].p + 1e-9) : topRate() <= PENCILS[g].p + 1e-9);
   const unlockLevel = g => TOUGH_R.findIndex(r => 0.40 - r / 100 <= PENCILS[g].p + 1e-9);
   const breakRate = g => (g === 5 ? 0 : Math.max(FLOOR[g], Math.min(PENCILS[g].p, topRate())));
   const skillMax = k => SKILLS[k].price.length;
@@ -512,7 +512,8 @@
         saveGame('ended'); // 엔딩 → 이어하기는 보이되 못 누름
         result(t('endTitle'), t('endText', { d: S.stage, m: fmtMoney(S.money) }), t('restart'), toTitle);
       }, t('choiceStay'), () => {
-        S.endless = true; saveGame();
+        const before = PENCILS.map((_, g) => unlocked(g));
+        S.endless = true; saveGame(); noteUnlocks(before);
         PC.tutorial.talk(['rel_stay'], () => startStage());
       });
     });
