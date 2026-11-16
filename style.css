@@ -38,7 +38,7 @@ button:disabled { opacity: .4; cursor: default; }
 #scorePop.show { animation: pop 1s ease-out; }
 @keyframes pop { 0% { opacity: 0; transform: scale(.6); } 20% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: translateY(-15%); } }
 
-#toast { position: absolute; z-index: 6; top: 6vh; left: 50%; transform: translateX(-50%); max-width: 90vw; background: var(--panel); border: 1px solid #6b5a40; padding: .6em 1.2em; border-radius: 4px; opacity: 0; transition: opacity .3s; pointer-events: none; text-align: center; }
+#toast { position: absolute; z-index: 13; top: 6vh; left: 50%; transform: translateX(-50%); max-width: 90vw; background: var(--panel); border: 1px solid #6b5a40; padding: .6em 1.2em; border-radius: 4px; opacity: 0; transition: opacity .3s; pointer-events: none; text-align: center; }
 #toast.show { opacity: 1; }
 
 #dlg { position: absolute; z-index: 5; top: 1vh; left: 50%; transform: translateX(-50%); width: min(760px, 94vw); background: var(--panel); border: 1px solid #6b5a40; padding: .7em 1.2em .6em; border-radius: 4px; cursor: pointer; }
