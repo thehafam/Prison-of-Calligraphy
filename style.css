@@ -170,3 +170,4 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 #notice { position: absolute; z-index: 14; left: 50%; top: 40%; transform: translate(-50%, -50%); min-width: min(420px, 90vw); background: #1e1812; border: 2px solid #c9a35a;
   box-shadow: 0 0 0 100vmax rgba(0,0,0,.45), 0 0 24px #c9a35a88; padding: 1.2em 1.6em; border-radius: 6px; text-align: center; font-size: 1.15em; }
 #notice p { margin: 0 0 .9em; }
+#dlg.over { z-index: 13; } /* 튜토리얼: 열린 상점 위에서 설명 */
