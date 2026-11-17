@@ -9,15 +9,15 @@
   // 하루 일감 (사용자 확정): 몸값 2000냥을 모으면 풀려남. 하루 = 5분, 아침마다 일감을 하나 골라 할당량을 채움
   // 일감은 차례로 해금: 바로 아래 일감을 이틀 성공하면 다음 일감이 열림. 어려운 일감일수록 장당 값이 높음
   const JOBS = [
-    { tier: 'letter', quota: 50, pay: 1 },   // 1 한글 자음·모음 / 알파벳 하나
-    { tier: 'word1', quota: 35, pay: 2 },    // 2 받침 없는 한 글자 / 영어 3자 (사용자 확정: 40 → 35장)
-    { tier: 'syl3', quota: 30, pay: 4 },     // 3 받침 있는 한 글자 / 영어 4~5자
-    { tier: 'word3', quota: 20, pay: 8 },    // 4 받침 있는 두 음절 / 영어 6자
-    { tier: 'word5', quota: 15, pay: 15, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
-    { tier: 'sent1', quota: 10, pay: 25, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
-    { tier: 'sent23', quota: 5, pay: 60, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
+    { tier: 'letter', quota: 30, pay: 1.5 },   // 1 한글 자음·모음 / 알파벳 하나
+    { tier: 'word1', quota: 20, pay: 3 },    // 2 받침 없는 한 글자 / 영어 3자 (사용자 확정: 40 → 35장)
+    { tier: 'syl3', quota: 18, pay: 6 },     // 3 받침 있는 한 글자 / 영어 4~5자
+    { tier: 'word3', quota: 12, pay: 12 },    // 4 받침 있는 두 음절 / 영어 6자
+    { tier: 'word5', quota: 9, pay: 22.5, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
+    { tier: 'sent1', quota: 6, pay: 37.5, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
+    { tier: 'sent23', quota: 3, pay: 90, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
   ];
-  const DAY_SEC = 300, RANSOM = 2000, WINS_TO_UNLOCK = 2;
+  const DAY_SEC = 180, RANSOM = 2000, WINS_TO_UNLOCK = 2;
   const jobOpen = i => i === 0 || ((S.wins || [])[i - 1] || 0) >= WINS_TO_UNLOCK;
   const PASS = 80;
   const fmtMoney = n => String(Math.round(n * 100) / 100); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
@@ -438,7 +438,7 @@
       const open = jobOpen(i);
       const act = open ? `<button data-job="${i}">${t('take')}</button>`
         : `<span class="lockwhy">${t('jobLock', { n: (S.wins[i - 1] || 0) })}</span>`;
-      h += `<tr class="${open ? '' : 'locked-job'}"><td class="jobname">${i + 1}. ${names[i]}</td><td>${jb.quota}</td><td>${jb.pay}</td><td>${jb.quota * jb.pay}</td><td>${act}</td></tr>`;
+      h += `<tr class="${open ? '' : 'locked-job'}"><td class="jobname">${i + 1}. ${names[i]}</td><td>${jb.quota}</td><td>${jb.pay}</td><td>${fmtMoney(jb.quota * jb.pay)}</td><td>${act}</td></tr>`;
     });
     $('jobTable').innerHTML = h;
     $('jobs').classList.remove('hidden');
