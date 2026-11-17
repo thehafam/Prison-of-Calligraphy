@@ -37,11 +37,11 @@
   // 단단한 심 = 연필 업그레이드 (사용자 확정): 레벨마다 '지금 가장 좋은 연필'의 파손율이 내려감. 다음 연필의 파손율에 닿으면 그 연필 해금,
   // 새 연필은 그 값에서 시작해 다시 내려감. 지난 연필은 다음 연필의 원래 파손율에서 멈춤. 최종 목표 = 고급연필 2%
   //   레벨 0: 40% · 4: 30%(연필) · 8: 20%(괜찮은) · 12: 10%(제법 좋은) · 14: 5%(고급) · 15: 2%
-  const TOUGH_R = [0, 5, 10, 15, 20, 23.3, 26.7, 30, 35, 35.4, 35.9, 36.3, 36.7, 37.1, 37.6, 38]; // 사용자 확정: 2·4·7·8레벨에 연필·괜찮은·제법 좋은·고급 해금, 15레벨 2% // 볼품없는 연필 40%에서 줄어든 %p
+  const TOUGH_R = [0, 3.3, 6.7, 10, 15, 20, 25, 30, 32.5, 35, 35.5, 36, 36.5, 37, 37.5, 38]; // 사용자 확정: 3·5·7·9레벨에 연필·괜찮은·제법 좋은·고급, 11레벨에 깨지지 않은 연필, 15레벨 고급 2% // 볼품없는 연필 40%에서 줄어든 %p
   const FLOOR = [0.30, 0.20, 0.10, 0.05, 0.02, 0];  // 연필마다 내려갈 수 있는 바닥 (= 다음 연필의 원래 파손율, 고급연필은 2%)
   const topRate = () => 0.40 - TOUGH_R[lv('tough')] / 100;
-  const UNBREAK_JOB = 5; // 깨지지 않은 연필 (사용자 확정): 고급연필이 해금된 채 6번째 일감이 열리면, 또는 단단한 심 15레벨, 또는 무한 모드에 들어서면
-  const unlocked = g => g === 0 || (g === 5 ? !!S.endless || lv('tough') >= skillMax('tough') || (jobOpen(UNBREAK_JOB) && topRate() <= PENCILS[4].p + 1e-9) : topRate() <= PENCILS[g].p + 1e-9);
+  const UNBREAK_TOUGH = 11, UNBREAK_JOB = 5; // 깨지지 않은 연필 (사용자 확정): 고급연필이 해금된 채 6번째 일감이 열리면, 또는 단단한 심 15레벨, 또는 무한 모드에 들어서면
+  const unlocked = g => g === 0 || (g === 5 ? !!S.endless || lv('tough') >= UNBREAK_TOUGH || (jobOpen(UNBREAK_JOB) && topRate() <= PENCILS[4].p + 1e-9) : topRate() <= PENCILS[g].p + 1e-9);
   const unlockLevel = g => TOUGH_R.findIndex(r => 0.40 - r / 100 <= PENCILS[g].p + 1e-9);
   const breakRate = g => (g === 5 ? 0 : Math.max(FLOOR[g], Math.min(PENCILS[g].p, topRate())));
   const skillMax = k => SKILLS[k].price.length;
