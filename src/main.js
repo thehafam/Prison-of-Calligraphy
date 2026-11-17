@@ -11,11 +11,11 @@
   const JOBS = [
     { tier: 'letter', quota: 30, pay: 1.5 },   // 1 한글 자음·모음 / 알파벳 하나
     { tier: 'word1', quota: 20, pay: 3 },    // 2 받침 없는 한 글자 / 영어 3자 (사용자 확정: 40 → 35장)
-    { tier: 'syl3', quota: 18, pay: 6 },     // 3 받침 있는 한 글자 / 영어 4~5자
-    { tier: 'word3', quota: 12, pay: 12 },    // 4 받침 있는 두 음절 / 영어 6자
-    { tier: 'word5', quota: 9, pay: 22.5, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
-    { tier: 'sent1', quota: 6, pay: 37.5, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
-    { tier: 'sent23', quota: 3, pay: 90, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
+    { tier: 'syl3', quota: 15, pay: 6 },     // 3 받침 있는 한 글자 / 영어 4~5자
+    { tier: 'word3', quota: 10, pay: 12 },    // 4 받침 있는 두 음절 / 영어 6자
+    { tier: 'word5', quota: 7, pay: 22.5, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
+    { tier: 'sent1', quota: 5, pay: 37.5, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
+    { tier: 'sent23', quota: 2, pay: 90, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
   ];
   const OVER_BONUS = 1, DAY_SEC = 180, RANSOM = 2000, WINS_TO_UNLOCK = 2;
   const jobOpen = i => i === 0 || ((S.wins || [])[i - 1] || 0) >= WINS_TO_UNLOCK;
