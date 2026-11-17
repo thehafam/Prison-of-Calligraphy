@@ -9,20 +9,20 @@
   // 하루 일감 (사용자 확정): 몸값 2000냥을 모으면 풀려남. 하루 = 5분, 아침마다 일감을 하나 골라 할당량을 채움
   // 일감은 차례로 해금: 바로 아래 일감을 이틀 성공하면 다음 일감이 열림. 어려운 일감일수록 장당 값이 높음
   const JOBS = [
-    { tier: 'letter', quota: 30, pay: 1.5 },   // 1 한글 자음·모음 / 알파벳 하나
-    { tier: 'word1', quota: 20, pay: 3 },    // 2 받침 없는 한 글자 / 영어 3자 (사용자 확정: 40 → 35장)
-    { tier: 'syl3', quota: 15, pay: 6 },     // 3 받침 있는 한 글자 / 영어 4~5자
-    { tier: 'word3', quota: 10, pay: 12 },    // 4 받침 있는 두 음절 / 영어 6자
-    { tier: 'word5', quota: 7, pay: 22.5, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
-    { tier: 'sent1', quota: 5, pay: 37.5, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
-    { tier: 'sent23', quota: 2, pay: 100, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
+    { tier: 'letter', quota: 30, pay: 2 },   // 1 한글 자음·모음 / 알파벳 하나
+    { tier: 'word1', quota: 20, pay: 4 },    // 2 받침 없는 한 글자 / 영어 3자 (사용자 확정: 40 → 35장)
+    { tier: 'syl3', quota: 15, pay: 8 },     // 3 받침 있는 한 글자 / 영어 4~5자
+    { tier: 'word3', quota: 10, pay: 16 },    // 4 받침 있는 두 음절 / 영어 6자
+    { tier: 'word5', quota: 7, pay: 30, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
+    { tier: 'sent1', quota: 5, pay: 50, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
+    { tier: 'sent23', quota: 2, pay: 133, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
   ];
   const OVER_BONUS = 1, DAY_SEC = 180, RANSOM = 2000, WINS_TO_UNLOCK = 2;
   const jobOpen = i => i === 0 || ((S.wins || [])[i - 1] || 0) >= WINS_TO_UNLOCK;
   const PASS = 80;
   const fmtMoney = n => String(Math.round(n * 100) / 100); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
   // 보상: 기본금(글이 길수록 많음: 획 수 ÷ 3, 최소 1냥) + 완성도 (80~89점 기본금 / 90~99점 +1 / 100점 +2)
-  const rewardOf = (score, base) => (score < PASS ? 0 : Math.round((base * (score >= 100 ? 1.2 : score >= 90 ? 1.15 : 1) + lv('word') * WORD_NYANG) * 100) / 100); // 장당 값 + 완성도(90점 +15%, 100점 +20%, 사용자 확정) + 좋은 말 // 장당 값 = 일감 값 + 완성도 + 좋은 말
+  const rewardOf = (score, base) => (score < PASS ? 0 : Math.round((base * (score >= 100 ? 1.2 : score >= 90 ? 1.15 : 1) + WORD_TOTAL[lv('word')]) * 100) / 100); // 장당 값 + 완성도(90점 +15%, 100점 +20%, 사용자 확정) + 좋은 말 // 장당 값 = 일감 값 + 완성도 + 좋은 말
   const CREDIT_BASE = 18;
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
   const BREAK_PER_CHAR = 1 / 25; // 하루 일감(하루 50~120글자)에 맞춰 낮춤: 볼품없는 연필로 일감 1 하루 약 0.8번
@@ -37,7 +37,7 @@
   // 단단한 심 = 연필 업그레이드 (사용자 확정): 레벨마다 '지금 가장 좋은 연필'의 파손율이 내려감. 다음 연필의 파손율에 닿으면 그 연필 해금,
   // 새 연필은 그 값에서 시작해 다시 내려감. 지난 연필은 다음 연필의 원래 파손율에서 멈춤. 최종 목표 = 고급연필 2%
   //   레벨 0: 40% · 4: 30%(연필) · 8: 20%(괜찮은) · 12: 10%(제법 좋은) · 14: 5%(고급) · 15: 2%
-  const TOUGH_R = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 38]; // 볼품없는 연필 40%에서 줄어든 %p
+  const TOUGH_R = [0, 5, 10, 15, 20, 23.3, 26.7, 30, 35, 35.4, 35.9, 36.3, 36.7, 37.1, 37.6, 38]; // 사용자 확정: 2·4·7·8레벨에 연필·괜찮은·제법 좋은·고급 해금, 15레벨 2% // 볼품없는 연필 40%에서 줄어든 %p
   const FLOOR = [0.30, 0.20, 0.10, 0.05, 0.02, 0];  // 연필마다 내려갈 수 있는 바닥 (= 다음 연필의 원래 파손율, 고급연필은 2%)
   const topRate = () => 0.40 - TOUGH_R[lv('tough')] / 100;
   const UNBREAK_JOB = 5; // 깨지지 않은 연필 (사용자 확정): 고급연필이 해금된 채 6번째 일감이 열리면, 또는 단단한 심 15레벨, 또는 무한 모드에 들어서면
@@ -45,7 +45,10 @@
   const unlockLevel = g => TOUGH_R.findIndex(r => 0.40 - r / 100 <= PENCILS[g].p + 1e-9);
   const breakRate = g => (g === 5 ? 0 : Math.max(FLOOR[g], Math.min(PENCILS[g].p, topRate())));
   const skillMax = k => SKILLS[k].price.length;
-  const CLOCK_SEC = 2, WORD_NYANG = 0.5, SWAP_BY_LV = Array.from({ length: 16 }, (_, i) => +(1.5 - i * 0.1).toFixed(1));
+  // 사용자 확정: 느린 시계 15레벨 = 하루 +200초, 좋은 말 한마디 15레벨 = 장당 +10냥 (레벨별 누적값)
+  const CLOCK_TOTAL = Array.from({ length: 16 }, (_, l) => Math.round(200 * l / 15));
+  const WORD_TOTAL = Array.from({ length: 16 }, (_, l) => Math.round(l * 2 / 3 * 2) / 2);
+  const SWAP_BY_LV = Array.from({ length: 16 }, (_, i) => +(1.5 - i * 0.1).toFixed(1));
   const lv = k => (S.skills && S.skills[k]) || 0;
   const swapMs = () => SWAP_BY_LV[lv('hand')] * 1000; // 연필을 바꿔 쥐는 데 드는 시간 (시간은 계속 흐름)
 
@@ -347,7 +350,7 @@
     let h = `<tr><th></th><th>${t('skillEffect')}</th><th>${t('skillLevel')}</th><th>${t('price')}</th><th></th></tr>`;
     for (const k of Object.keys(SKILLS)) {
       const l = lv(k), M = skillMax(k), max = l >= M, price = SKILLS[k].price[l];
-      const eff = v => (k === 'clock' ? `+${v * CLOCK_SEC}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `${+(40 - TOUGH_R[v]).toFixed(1)}%` : `+${fmtMoney(v * WORD_NYANG)}`);
+      const eff = v => (k === 'clock' ? `+${CLOCK_TOTAL[v]}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `${+(40 - TOUGH_R[v]).toFixed(1)}%` : `+${fmtMoney(WORD_TOTAL[v])}`);
       const desc = `${t('sk_' + k + '_d')}<br><small>${eff(l)}${max ? '' : ' → ' + eff(l + 1)}</small>`;
       const dots = M > 5 ? `${l} / ${M}` : '●'.repeat(l) + '○'.repeat(M - l);
       h += `<tr><td class="skname">${t('sk_' + k)}</td><td class="skdesc">${desc}</td><td class="dots">${dots}</td><td>${max ? '—' : price}</td>
@@ -363,7 +366,7 @@
       const before = PENCILS.map((_, g) => unlocked(g));
       S.money -= SKILLS[k].price[l]; S.skills = S.skills || {}; S.skills[k] = l + 1;
       if (k === 'tough') { planBreaks(); noteUnlocks(before); }
-      if (k === 'clock' && S.running) S.bonusTime = (S.bonusTime || 0) + CLOCK_SEC; // 단계 도중에 사면 지금 단계에도 바로 +2초
+      if (k === 'clock' && S.running) S.bonusTime = (S.bonusTime || 0) + CLOCK_TOTAL[l + 1] - CLOCK_TOTAL[l]; // 하루 도중에 사면 지금 하루에도 바로 늘어남
     } else if (b.dataset.buy) {
       const g = +b.dataset.buy; if (S.money < PENCILS[g].price) return;
       S.money -= PENCILS[g].price;
@@ -430,7 +433,7 @@
   }
   // 아침: 오늘의 일감 고르기 (무한 모드는 무작위)
   function pickJob() {
-    Object.assign(S, { mode: 'stage', running: false, stack: [], timeLeft: DAY_SEC + lv('clock') * CLOCK_SEC });
+    Object.assign(S, { mode: 'stage', running: false, stack: [], timeLeft: DAY_SEC + CLOCK_TOTAL[lv('clock')] });
     $('stack').innerHTML = ''; show('game'); $('controls').style.visibility = 'hidden';
     sheet = null; $('paperWrap').style.visibility = 'hidden'; hud();
     $('jobsSub').innerHTML = t('jobsSub', { d: S.stage + 1, m: fmtMoney(S.money), r: RANSOM });
@@ -463,7 +466,7 @@
       sheet = null; $('paperWrap').style.visibility = 'hidden'; hud();
       return PC.tutorial.talk(['up_noguide1', 'up_noguide2'], () => startStage(jobIdx));
     }
-    Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: DAY_SEC + lv('clock') * CLOCK_SEC, running: true, busy: false, bonusTime: 0 });
+    Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: DAY_SEC + CLOCK_TOTAL[lv('clock')], running: true, busy: false, bonusTime: 0 });
     $('stack').innerHTML = ''; $('controls').style.visibility = '';
     show('game'); newSheet(); hud();
     const t0 = performance.now(), total = S.timeLeft;

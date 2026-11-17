@@ -4,9 +4,9 @@
     en: {
       title: 'Prison of Calligraphy',
       start: 'New Game', continue: 'Continue', tabItems: 'Items', tabSkills: 'Skills', skillEffect: 'Effect', skillLevel: 'Level', upgrade: 'Upgrade', maxed: 'Max', sec: 's',
-      sk_clock: 'Slow Clock', sk_clock_d: 'The warden reads his watch a little late. +2s per day per level.',
+      sk_clock: 'Slow Clock', sk_clock_d: 'The warden reads his watch a little late. More time each day (+200s at level 15).',
       sk_hand: 'Quick Hands', sk_hand_d: 'Pick up a spare pencil faster.',
-      sk_word: 'A Good Word', sk_word_d: 'Someone puts in a good word above. +0.5 nyang per accepted sheet per level.',
+      sk_word: 'A Good Word', sk_word_d: 'Someone puts in a good word above. More nyang per accepted sheet (+10 at level 15).',
       sk_tough: 'Hard Lead', sk_tough_d: 'Upgrades your best pencil: its break chance drops each level, and when it reaches the next pencil\'s, that pencil is unlocked.',
       unlockTough: 'Hard Lead Lv {n}', newTag: 'NEW', ok: 'OK', pencilUnlocked: 'New in the Shop: {name}', unlockStage: 'Fine Pencil + job {n}, Hard Lead Lv 15, or endless mode', settings: 'Settings', language: 'Language', close: 'Close',
       jobsTitle: "Today's Work", jobsSub: 'Day {d} · Ransom {m} / {r} nyang', jobQuota: 'Quota', jobPay: 'Per sheet', jobDaily: 'Per day', take: 'Take',
@@ -92,9 +92,9 @@
     ko: {
       title: '교필의 감옥',
       start: '새로 하기', continue: '이어하기', tabItems: '아이템', tabSkills: '스킬', skillEffect: '효과', skillLevel: '레벨', upgrade: '업그레이드', maxed: '최대', sec: '초',
-      sk_clock: '느린 시계', sk_clock_d: '교도관이 시계를 조금 늦게 본다. 레벨마다 하루 시간 +2초.',
+      sk_clock: '느린 시계', sk_clock_d: '교도관이 시계를 조금 늦게 본다. 하루 시간이 늘어난다 (15레벨이면 +200초).',
       sk_hand: '빠른 손', sk_hand_d: '여분 연필을 더 빨리 집어 든다.',
-      sk_word: '좋은 말 한마디', sk_word_d: '누군가 위에 좋게 말해 준다. 레벨마다 합격한 종이당 +0.5냥.',
+      sk_word: '좋은 말 한마디', sk_word_d: '누군가 위에 좋게 말해 준다. 합격한 종이마다 돈을 더 받는다 (15레벨이면 +10냥).',
       sk_tough: '단단한 심', sk_tough_d: '가장 좋은 연필을 업그레이드한다. 레벨마다 파손율이 내려가고, 다음 연필의 파손율에 닿으면 그 연필이 해금된다.',
       unlockTough: '단단한 심 {n}레벨', newTag: '새로', ok: '확인', pencilUnlocked: '상점에 새 연필: {name}', unlockStage: '고급연필 + {n}번째 일감, 단단한 심 15레벨, 또는 무한 모드', settings: '설정', language: '언어', close: '닫기',
       jobsTitle: '오늘의 일감', jobsSub: '{d}일째 · 몸값 {m} / {r}냥', jobQuota: '할당', jobPay: '장당', jobDaily: '하루', take: '받는다',
