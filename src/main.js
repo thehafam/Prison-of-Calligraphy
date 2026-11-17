@@ -17,7 +17,7 @@
     { tier: 'sent1', quota: 6, pay: 37.5, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
     { tier: 'sent23', quota: 3, pay: 90, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
   ];
-  const DAY_SEC = 180, RANSOM = 2000, WINS_TO_UNLOCK = 2;
+  const OVER_BONUS = 1, DAY_SEC = 180, RANSOM = 2000, WINS_TO_UNLOCK = 2;
   const jobOpen = i => i === 0 || ((S.wins || [])[i - 1] || 0) >= WINS_TO_UNLOCK;
   const PASS = 80;
   const fmtMoney = n => String(Math.round(n * 100) / 100); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)
@@ -410,7 +410,9 @@
     const scores = S.stack.map(x => PC.score(x.tpl, x.strokes, 7 * x.g));
     const pay = scores.map((v, i) => rewardOf(v, S.stack[i].base));
     S.passed = scores.filter(v => v >= PASS).length; S.earned = pay.reduce((a, b) => a + b, 0); S.money += S.earned;
-    S.bonus = 0; // 할당을 넘긴 장도 같은 값으로 받음
+    // 할당 초과 보너스 (사용자 확정): 할당을 넘겨 합격한 장마다 1냥 더
+    S.bonus = S.mode === 'stage' ? Math.max(0, S.passed - stageDef().quota) * OVER_BONUS : 0;
+    S.money += S.bonus;
     $('resultScores').innerHTML = scores.map((v, i) => `<span class="chip ${v >= PASS ? 'ok' : ''}">${v}${pay[i] ? ` · +${pay[i]} <img class="coin" src="assets/coin.png" alt="">` : ''}</span>`).join('');
     S.stack = []; $('stack').innerHTML = '';
     return scores;
@@ -499,7 +501,7 @@
       noteUnlocks(before);
     }
     hud();
-    const txt = t('stageResult', { n: S.passed, q, m: fmtMoney(S.earned) }) + (jobLine ? '\n' + jobLine : '') + (debtLine ? '\n' + debtLine : '');
+    const txt = t('stageResult', { n: S.passed, q, m: fmtMoney(S.earned) }) + (S.bonus ? '\n' + t('bonusLine', { b: fmtMoney(S.bonus) }) : '') + (jobLine ? '\n' + jobLine : '') + (debtLine ? '\n' + debtLine : '');
     if (S.lives <= 0) return gameOver();
     S.stage++; saveGame(); // 하루가 끝나는 순간 저장 (실패해 잃은 목숨도 저장)
     const free = !S.endless && S.money >= RANSOM; // 몸값을 다 모음 → 교도관이 풀어 주겠다고 함
