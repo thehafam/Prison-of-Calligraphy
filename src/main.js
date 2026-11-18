@@ -47,7 +47,8 @@
   const breakRate = g => (g === 5 ? 0 : Math.max(FLOOR[g], Math.min(PENCILS[g].p, topRate())));
   const skillMax = k => SKILLS[k].price.length;
   // 사용자 확정: 느린 시계 15레벨 = 하루 +200초, 좋은 말 한마디 15레벨 = 장당 +10냥 (레벨별 누적값)
-  const CLOCK_TOTAL = Array.from({ length: 16 }, (_, l) => Math.round(200 * l / 15));
+  const CLOCK_MAX = 150; // 사용자 확정: 15레벨 +150초 (예전 +200초)
+  const CLOCK_TOTAL = Array.from({ length: 16 }, (_, l) => Math.round(CLOCK_MAX * l / 15));
   const WORD_TOTAL = Array.from({ length: 16 }, (_, l) => Math.round(l * 2 / 3 * 2) / 2);
   const SWAP_BY_LV = Array.from({ length: 16 }, (_, i) => +(1.5 - i * 0.1).toFixed(1));
   const lv = k => (S.skills && S.skills[k]) || 0;

@@ -4,7 +4,7 @@
     en: {
       title: 'Prison of Calligraphy',
       start: 'New Game', continue: 'Continue', tabItems: 'Items', tabSkills: 'Skills', skillEffect: 'Effect', skillLevel: 'Level', upgrade: 'Upgrade', maxed: 'Max', sec: 's',
-      sk_clock: 'Slow Clock', sk_clock_d: 'The warden reads his watch a little late. More time each day (+200s at level 15).',
+      sk_clock: 'Slow Clock', sk_clock_d: 'The warden reads his watch a little late. More time each day (+150s at level 15).',
       sk_hand: 'Quick Hands', sk_hand_d: 'Pick up a spare pencil faster.',
       sk_fix: 'Steady Fingertips', sk_fix_d: 'Sometimes your hand finds the line by itself: the sheet is straightened to a perfect 100 (+5% chance per level).',
       sk_word: 'A Good Word', sk_word_d: 'Someone puts in a good word above. More nyang per accepted sheet (+10 at level 15).',
@@ -93,7 +93,7 @@
     ko: {
       title: '교필의 감옥',
       start: '새로 하기', continue: '이어하기', tabItems: '아이템', tabSkills: '스킬', skillEffect: '효과', skillLevel: '레벨', upgrade: '업그레이드', maxed: '최대', sec: '초',
-      sk_clock: '느린 시계', sk_clock_d: '교도관이 시계를 조금 늦게 본다. 하루 시간이 늘어난다 (15레벨이면 +200초).',
+      sk_clock: '느린 시계', sk_clock_d: '교도관이 시계를 조금 늦게 본다. 하루 시간이 늘어난다 (15레벨이면 +150초).',
       sk_hand: '빠른 손', sk_hand_d: '여분 연필을 더 빨리 집어 든다.',
       sk_fix: '바른 손끝', sk_fix_d: '가끔 손이 저절로 선을 찾는다. 낸 종이가 반듯하게 보정되어 100점이 된다 (레벨마다 +5% 확률).',
       sk_word: '좋은 말 한마디', sk_word_d: '누군가 위에 좋게 말해 준다. 합격한 종이마다 돈을 더 받는다 (15레벨이면 +10냥).',
