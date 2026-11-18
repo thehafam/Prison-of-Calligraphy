@@ -628,7 +628,16 @@
     PC.tutorial.talk(['rel_1', 'rel_2'], () => {
       result(t('relTitle'), t('relAsk'), t('choiceLeave'), () => {
         saveGame('ended'); // 엔딩 → 이어하기는 보이되 못 누름
-        result(t('endTitle'), t('endText', { d: S.stage, m: fmtMoney(S.money) }), t('restart'), toTitle);
+        // 밖으로: 화면 가운데서 하얀 빛이 확 번져 온 화면을 덮은 뒤 엔딩 문구 (사용자 요청)
+        $('btnShop').classList.add('hidden'); $('hud').classList.add('hidden');
+        const L = $('light'); L.classList.remove('hidden', 'on'); void L.offsetWidth; L.classList.add('on');
+        sfxNoise(1.6, 200, 3000, 0.3);
+        setTimeout(() => {
+          $('result').classList.add('ending');
+          result(t('endTitle'), t('endText', { d: S.stage, m: fmtMoney(S.money) }), t('restart'), () => {
+            $('result').classList.remove('ending'); L.classList.add('hidden'); L.classList.remove('on'); toTitle();
+          });
+        }, 2200);
       }, t('choiceStay'), () => {
         const before = PENCILS.map((_, g) => unlocked(g));
         S.endless = true; saveGame(); noteUnlocks(before);
