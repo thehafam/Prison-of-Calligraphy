@@ -90,7 +90,7 @@
       sheet.tpl.forEach((s, i) => { if (i !== next) arrow(s, i + 1, g, false); });
       arrow(sheet.tpl[next], next + 1, g, true);
     }
-    if (sheet.water) drawWater(sheet.water);
+    if (sheet.water) sheet.water.forEach(drawWater);
     // 플레이어 글씨 (보정 중이면 내 획이 원본 모양으로 반듯해지는 중간 모습 + 금빛)
     if (sheet.morph) return drawMorph(g);
     ctx.strokeStyle = '#26221d'; ctx.lineWidth = 3.4 * g;
@@ -225,7 +225,7 @@
     if (k === 'tremble') trembleUntil = performance.now() + TREMBLE_MS;
     else if (k === 'flicker') { const d = $('dark'); d.classList.remove('on'); void d.offsetWidth; d.classList.add('on'); setTimeout(() => d.classList.remove('on'), FLICKER_MS); }
     else if (k === 'tilt' && sheet && !flying) slip(sheet); // 쓰는 와중에 종이가 미끄러지며 비뚤어짐 (사용자 확정)
-    else if (k === 'water' && sheet && !flying) { addWater(sheet); draw(); } // 물방울: 지금 쓰는 종이의 무작위 자리에 (사용자 확정)
+    else if (k === 'water' && sheet && !flying) addWater(sheet); // 물방울: 지금 쓰는 종이의 무작위 자리에 (사용자 확정)
     else S['next_' + k] = true; // 기울어짐(또는 종이가 날아오는 중의 물방울): 다음 종이에
   }
   cv.addEventListener('pointerdown', e => {
@@ -463,9 +463,20 @@
     cv.style.transform = `translate(${dx}px, ${dy}px) rotate(${sh.tilt}deg)`;
     sfxNoise(0.35, 300, 900, 0.3); // 종이가 끌리는 소리
   }
-  function addWater(sh) { // 따라 쓸 글씨 위 무작위 한 곳에 번짐
-    const pts = sh.tpl.flat(), p = pts[Math.floor(Math.random() * pts.length)];
-    sh.water = { x: p[0] + (Math.random() - 0.5) * 6, y: p[1] + (Math.random() - 0.5) * 6, r: (15 + Math.random() * 6) * Math.max(0.8, sh.g) };
+  function addWater(sh) { // 따라 쓸 글씨 위 무작위 두세 곳에 차례로 한 방울씩 (사용자 확정)
+    const pts = sh.tpl.flat(), n = 2 + (Math.random() < 0.5 ? 1 : 0);
+    sh.water = sh.water || [];
+    for (let i = 0; i < n; i++) setTimeout(() => {
+      if (sheet !== sh) return;
+      // 이미 떨어진 방울과 겹치지 않게: 후보 몇 곳 중 가장 먼 자리
+      let p = null, best = -1;
+      for (let c = 0; c < 8; c++) {
+        const q = pts[Math.floor(Math.random() * pts.length)], d = Math.min(Infinity, ...sh.water.map(w => Math.hypot(w.x - q[0], w.y - q[1])));
+        if (d > best) { best = d; p = q; }
+      }
+      sh.water.push({ x: p[0] + (Math.random() - 0.5) * 6, y: p[1] + (Math.random() - 0.5) * 6, r: (12 + Math.random() * 5) * Math.max(0.8, sh.g) });
+      sfxNoise(0.08, 1800, 600, 0.25); draw(); // 똑
+    }, i * 260);
   }
   function drawWater({ x, y, r }) {
     const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
