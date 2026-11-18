@@ -151,11 +151,7 @@
     sheet = { lang, key, tpl, g, w, guide, chars, base: S.mode === 'stage' ? stageDef().pay : 1, strokes: [], ink: 0, breakAt: Infinity };
     // 물방울·기울어진 종이 (일하는 날에만)
     const stageSheet = S.mode === 'stage';
-    if (stageSheet && S.next_water) {
-      S.next_water = false;
-      const pts = tpl.flat(), p = pts[Math.floor(Math.random() * pts.length)];
-      sheet.water = { x: p[0] + (Math.random() - 0.5) * 6, y: p[1] + (Math.random() - 0.5) * 6, r: (15 + Math.random() * 6) * Math.max(0.8, g) };
-    }
+    if (stageSheet && S.next_water) { S.next_water = false; addWater(sheet); }
     sheet.tilt = stageSheet && S.next_tilt ? (4 + Math.random() * 5) * (Math.random() < 0.5 ? -1 : 1) : 0;
     if (sheet.tilt) S.next_tilt = false;
     cv.style.transform = sheet.tilt ? `rotate(${sheet.tilt}deg)` : '';
@@ -229,7 +225,8 @@
     toast(t('hz_' + k)); // 주인공 독백
     if (k === 'tremble') trembleUntil = performance.now() + TREMBLE_MS;
     else if (k === 'flicker') { const d = $('dark'); d.classList.remove('on'); void d.offsetWidth; d.classList.add('on'); setTimeout(() => d.classList.remove('on'), FLICKER_MS); }
-    else S['next_' + k] = true; // 물방울·기울어짐: 다음 종이에
+    else if (k === 'water' && sheet && !flying) { addWater(sheet); draw(); } // 물방울: 지금 쓰는 종이의 무작위 자리에 (사용자 확정)
+    else S['next_' + k] = true; // 기울어짐(또는 종이가 날아오는 중의 물방울): 다음 종이에
   }
   cv.addEventListener('pointerdown', e => {
     if (!sheet || !canDraw()) return;
@@ -459,6 +456,10 @@
     requestAnimationFrame(step);
   }
   // 물방울 자국: 그 둘레의 회색 띠·화살표를 종이 색으로 덮어 흐리게, 가장자리에 옅은 얼룩 테
+  function addWater(sh) { // 따라 쓸 글씨 위 무작위 한 곳에 번짐
+    const pts = sh.tpl.flat(), p = pts[Math.floor(Math.random() * pts.length)];
+    sh.water = { x: p[0] + (Math.random() - 0.5) * 6, y: p[1] + (Math.random() - 0.5) * 6, r: (15 + Math.random() * 6) * Math.max(0.8, sh.g) };
+  }
   function drawWater({ x, y, r }) {
     const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
     gr.addColorStop(0, 'rgba(236, 228, 208, 0.97)'); gr.addColorStop(0.75, 'rgba(236, 228, 208, 0.9)'); gr.addColorStop(1, 'rgba(236, 228, 208, 0)');
