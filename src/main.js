@@ -32,6 +32,7 @@
     clock: { price: [8, 12, 18, 24, 30, 38, 46, 56, 68, 75, 80, 85, 90, 95, 100] },  // 느린 시계 (사용자 확정: 9레벨 +120초 ≈ 일감 5 무렵, 15레벨 +200초 ≈ 일감 7 무렵 — 합 825)
     hand:  { price: [3, 5, 7, 9, 11, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40] },     // 빠른 손: 바꿔 쥐는 시간 1.5 → 0.1초 (−0.1초/레벨, 합 300)
     word:  { price: [8, 12, 16, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75] },  // 좋은 말 한마디: 합격한 종이마다 +0.5냥/레벨 (최대 +7.5, 합 606)
+    fix:   { price: [8, 12, 16, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75] },  // 바른 손끝: 낸 종이가 100점으로 보정될 확률 5%/레벨 (15레벨 75%, 사용자 확정) [임시: 가격]
     tough: { price: [5, 8, 11, 14, 17, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65] }, // 단단한 심 15레벨: 연필 업그레이드 (아래 TOUGH_R) [임시: 가격]
   };
   // 단단한 심 = 연필 업그레이드 (사용자 확정): 레벨마다 '지금 가장 좋은 연필'의 파손율이 내려감. 다음 연필의 파손율에 닿으면 그 연필 해금,
@@ -351,7 +352,7 @@
     let h = `<tr><th></th><th>${t('skillEffect')}</th><th>${t('skillLevel')}</th><th>${t('price')}</th><th></th></tr>`;
     for (const k of Object.keys(SKILLS)) {
       const l = lv(k), M = skillMax(k), max = l >= M, price = SKILLS[k].price[l];
-      const eff = v => (k === 'clock' ? `+${CLOCK_TOTAL[v]}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `${+(40 - TOUGH_R[v]).toFixed(1)}%` : `+${fmtMoney(WORD_TOTAL[v])}`);
+      const eff = v => (k === 'clock' ? `+${CLOCK_TOTAL[v]}${t('sec')}` : k === 'hand' ? `${SWAP_BY_LV[v]}${t('sec')}` : k === 'tough' ? `${+(40 - TOUGH_R[v]).toFixed(1)}%` : k === 'fix' ? `${v * 5}%` : `+${fmtMoney(WORD_TOTAL[v])}`);
       const desc = `${t('sk_' + k + '_d')}<br><small>${eff(l)}${max ? '' : ' → ' + eff(l + 1)}</small>`;
       const dots = M > 5 ? `${l} / ${M}` : '●'.repeat(l) + '○'.repeat(M - l);
       h += `<tr><td class="skname">${t('sk_' + k)}</td><td class="skdesc">${desc}</td><td class="dots">${dots}</td><td>${max ? '—' : price}</td>
@@ -384,11 +385,11 @@
     if (!sheet || !sheet.strokes.length || S.busy || flying) return;
     if (S.mode === 'tutorial') return T.onSubmit && T.onSubmit();
     if (!S.running) return;
-    // 글씨 보정 (사용자 확정): 좋은 연필은 일정 확률로 무조건 100점 — 내 글씨가 반듯해지는 애니메이션 뒤 더미로
-    if (S.hand !== null && Math.random() < PERFECT[S.hand]) return correct(() => { if (S.running) { toStack(); hud(); newSheet(); } });
+    // 글씨 보정 (사용자 확정): 스킬 '바른 손끝' 레벨에 따라 일정 확률로 무조건 100점 — 내 글씨가 반듯해지는 애니메이션 뒤 더미로
+    if (Math.random() < lv('fix') * FIX_PER_LV) return correct(() => { if (S.running) { toStack(); hud(); newSheet(); } });
     toStack(); hud(); newSheet();
   }
-  const PERFECT = [0, 0, 0, 0.25, 0.5, 0.5]; // 제법 좋은 연필 25%, 고급연필 50% (사용자 확정), 깨지지 않은 연필 50% [임시]
+  const FIX_PER_LV = 0.05; // 글씨 보정은 스킬 '바른 손끝'으로 (사용자 확정: 연필에서 옮김, 15레벨 75%)
   const MORPH_MS = 550, MORPH_N = 40;
   function samplesOf(st) { // 획 하나를 같은 간격의 점 MORPH_N개로
     if (st.length < 2) return Array(MORPH_N).fill(st[0]);
