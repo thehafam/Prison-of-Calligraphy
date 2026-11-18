@@ -152,9 +152,8 @@
     // 물방울·기울어진 종이 (일하는 날에만)
     const stageSheet = S.mode === 'stage';
     if (stageSheet && S.next_water) { S.next_water = false; addWater(sheet); }
-    sheet.tilt = stageSheet && S.next_tilt ? (4 + Math.random() * 5) * (Math.random() < 0.5 ? -1 : 1) : 0;
-    if (sheet.tilt) S.next_tilt = false;
-    cv.style.transform = sheet.tilt ? `rotate(${sheet.tilt}deg)` : '';
+    sheet.tilt = 0; cv.style.transition = 'none'; cv.style.transform = '';
+    if (stageSheet && S.next_tilt) { S.next_tilt = false; slip(sheet); }
     // 파손: 글자 수에 비례해 쓰는 도중 아무 순간에 (planBreaks, 튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
     sheet.len = len;
@@ -225,6 +224,7 @@
     toast(t('hz_' + k)); // 주인공 독백
     if (k === 'tremble') trembleUntil = performance.now() + TREMBLE_MS;
     else if (k === 'flicker') { const d = $('dark'); d.classList.remove('on'); void d.offsetWidth; d.classList.add('on'); setTimeout(() => d.classList.remove('on'), FLICKER_MS); }
+    else if (k === 'tilt' && sheet && !flying) slip(sheet); // 쓰는 와중에 종이가 미끄러지며 비뚤어짐 (사용자 확정)
     else if (k === 'water' && sheet && !flying) { addWater(sheet); draw(); } // 물방울: 지금 쓰는 종이의 무작위 자리에 (사용자 확정)
     else S['next_' + k] = true; // 기울어짐(또는 종이가 날아오는 중의 물방울): 다음 종이에
   }
@@ -456,6 +456,13 @@
     requestAnimationFrame(step);
   }
   // 물방울 자국: 그 둘레의 회색 띠·화살표를 종이 색으로 덮어 흐리게, 가장자리에 옅은 얼룩 테
+  function slip(sh) { // 종이가 스르륵 미끄러지며 4~9° 기울고 조금 밀려남. 그은 글씨도 종이와 함께 움직임
+    sh.tilt = (4 + Math.random() * 5) * (Math.random() < 0.5 ? -1 : 1);
+    const dx = (Math.random() - 0.5) * 40, dy = (Math.random() - 0.5) * 24;
+    cv.style.transition = 'transform .45s cubic-bezier(.2, .8, .3, 1)';
+    cv.style.transform = `translate(${dx}px, ${dy}px) rotate(${sh.tilt}deg)`;
+    sfxNoise(0.35, 300, 900, 0.3); // 종이가 끌리는 소리
+  }
   function addWater(sh) { // 따라 쓸 글씨 위 무작위 한 곳에 번짐
     const pts = sh.tpl.flat(), p = pts[Math.floor(Math.random() * pts.length)];
     sh.water = { x: p[0] + (Math.random() - 0.5) * 6, y: p[1] + (Math.random() - 0.5) * 6, r: (15 + Math.random() * 6) * Math.max(0.8, sh.g) };
@@ -781,6 +788,6 @@
 
   PC.setLang(PC.getLang());
   show('title'); playTitle(); updateContinue();
-  PC.game = { S, T, endStage, release, JOBS, PENCILS, PASS, get sheet() { return sheet; }, get flying() { return flying; },
+  PC.game = { S, T, endStage, release, JOBS, fireHazard, PENCILS, PASS, get sheet() { return sheet; }, get flying() { return flying; },
     saveGame, newSheet, toStack, vacuum, settle, pop, toast, result, openShop, show, startGame, startStage, endStage, draw, hud };
 })();

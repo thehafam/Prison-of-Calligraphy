@@ -182,4 +182,3 @@ select { font: inherit; background: #3a2f22; color: var(--ink); border: 1px soli
 #dark { position: absolute; inset: 0; z-index: 2; background: #000; opacity: 0; pointer-events: none; }
 #dark.on { animation: flicker 3s ease-in-out both; }
 @keyframes flicker { 0% { opacity: 0 } 8% { opacity: .82 } 14% { opacity: .5 } 20% { opacity: .88 } 45% { opacity: .78 } 52% { opacity: .9 } 75% { opacity: .8 } 88% { opacity: .55 } 100% { opacity: 0 } }
-#paper { transition: transform .3s; }
