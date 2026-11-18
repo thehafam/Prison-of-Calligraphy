@@ -90,6 +90,7 @@
       sheet.tpl.forEach((s, i) => { if (i !== next) arrow(s, i + 1, g, false); });
       arrow(sheet.tpl[next], next + 1, g, true);
     }
+    if (sheet.water) drawWater(sheet.water);
     // 플레이어 글씨 (보정 중이면 내 획이 원본 모양으로 반듯해지는 중간 모습 + 금빛)
     if (sheet.morph) return drawMorph(g);
     ctx.strokeStyle = '#26221d'; ctx.lineWidth = 3.4 * g;
@@ -148,6 +149,14 @@
     const chars = [...key].filter(ch => ch !== ' ' && ch !== '.' && ch !== '\n').length;
     cur = null; // 앞 종이에서 쥐고 있던 획이 새 종이로 넘어오지 않게 (넘어오면 새 종이의 잉크가 부풀어 연필이 곧바로 부러졌음)
     sheet = { lang, key, tpl, g, w, guide, chars, base: S.mode === 'stage' ? stageDef().pay : 1, strokes: [], ink: 0, breakAt: Infinity };
+    // 물방울·기울어진 종이 (일하는 날에만)
+    const hj = S.mode === 'stage' ? (S.job || 0) : -1;
+    if (hj >= 0 && Math.random() < HAZ.water[hj]) {
+      const pts = tpl.flat(), p = pts[Math.floor(Math.random() * pts.length)];
+      sheet.water = { x: p[0] + (Math.random() - 0.5) * 6, y: p[1] + (Math.random() - 0.5) * 6, r: (15 + Math.random() * 6) * Math.max(0.8, g) };
+    }
+    sheet.tilt = hj >= 0 && Math.random() < HAZ.tilt[hj] ? (4 + Math.random() * 5) * (Math.random() < 0.5 ? -1 : 1) : 0;
+    cv.style.transform = sheet.tilt ? `rotate(${sheet.tilt}deg)` : '';
     // 파손: 글자 수에 비례해 쓰는 도중 아무 순간에 (planBreaks, 튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
     sheet.len = len;
@@ -191,7 +200,34 @@
   }
 
   const canDraw = () => (S.mode === 'stage' ? S.running : S.mode === 'tutorial' && T.allowDraw) && S.hand !== null && !S.busy && !flying;
-  function pt(e) { const r = cv.getBoundingClientRect(); return [((e.clientX - r.left) / r.height) * 100, ((e.clientY - r.top) / r.height) * 100]; }
+  // 화면 좌표 → 종이 좌표 (높이 100 기준). 기울어진 종이는 가운데를 축으로 되돌려 계산, 손떨림이면 흔들림을 더함
+  function pt(e) {
+    const r = cv.getBoundingClientRect(), W = cv.offsetWidth, H = cv.offsetHeight, a = -((sheet && sheet.tilt) || 0) * Math.PI / 180;
+    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const x = dx * Math.cos(a) - dy * Math.sin(a) + W / 2, y = dx * Math.sin(a) + dy * Math.cos(a) + H / 2;
+    const [jx, jy] = tremor();
+    return [(x / H) * 100 + jx, (y / H) * 100 + jy];
+  }
+  // ---------- 방해 요소 (사용자 확정: 손떨림·촛불 깜빡임·물방울·비뚤게 놓인 종이) [임시: 빈도·세기] ----------
+  // 일감 번호(0~6)마다: 하루 손떨림·깜빡임 횟수, 종이마다 물방울·기울어짐 확률
+  const HAZ = { tremble: [0, 1, 1, 2, 2, 3, 3], flicker: [0, 0, 1, 1, 2, 2, 3], water: [0, .1, .15, .2, .25, .3, .35], tilt: [0, .1, .15, .2, .25, .3, .35] };
+  const TREMBLE_MS = 4000, FLICKER_MS = 3000;
+  let trembleUntil = 0;
+  function tremor() {
+    const now = performance.now();
+    if (now > trembleUntil || !sheet) return [0, 0];
+    const A = 1.6 * sheet.g, t = now / 1000;
+    return [A * (Math.sin(t * 31) + Math.sin(t * 53)) / 2, A * (Math.sin(t * 37 + 1) + Math.sin(t * 47 + 2)) / 2];
+  }
+  function planHazards(total) { // 하루 안에서 손떨림·깜빡임이 일어날 때 (시간의 10~85% 사이)
+    const j = S.job || 0, ev = [];
+    for (const [k, n] of [['tremble', HAZ.tremble[j]], ['flicker', HAZ.flicker[j]]]) for (let i = 0; i < n; i++) ev.push({ k, at: total * (0.1 + Math.random() * 0.75) * 1000 });
+    return ev;
+  }
+  function fireHazard(k) {
+    if (k === 'tremble') { trembleUntil = performance.now() + TREMBLE_MS; toast(t('hzTremble')); $('penCursor').classList.add('tremble'); setTimeout(() => $('penCursor').classList.remove('tremble'), TREMBLE_MS); }
+    else { const d = $('dark'); d.classList.remove('on'); void d.offsetWidth; d.classList.add('on'); setTimeout(() => d.classList.remove('on'), FLICKER_MS); }
+  }
   cv.addEventListener('pointerdown', e => {
     if (!sheet || !canDraw()) return;
     cv.setPointerCapture(e.pointerId);
@@ -258,7 +294,8 @@
       if (m) { pen.innerHTML = `<img src="assets/cursor_${S.hand}.png" alt="" width="${m.w * PEN_SCALE}" height="${m.h * PEN_SCALE}">`; pen.style.transformOrigin = `${m.tipX * PEN_SCALE}px ${m.tipY * PEN_SCALE}px`; }
       else { pen.innerHTML = pencilSVG(S.hand); pen.style.transformOrigin = '0 50%'; }
     }
-    const press = cur ? ' scale(.96)' : '';
+    const press = cur ? ' scale(.96)' : '', [jx, jy] = tremor(), u = cv.offsetHeight / 100;
+    e = { clientX: e.clientX + jx * u, clientY: e.clientY + jy * u };
     pen.style.transform = m
       ? `translate(${e.clientX - m.tipX * PEN_SCALE}px, ${e.clientY - m.tipY * PEN_SCALE}px) rotate(${PEN_TILT - m.angle}deg)${press}`
       : `translate(${e.clientX}px, ${e.clientY - 13.8}px) rotate(${PEN_TILT}deg)${press}`;
@@ -418,6 +455,13 @@
     sfxNoise(0.4, 2400, 5200, 0.25); // 사르륵
     requestAnimationFrame(step);
   }
+  // 물방울 자국: 그 둘레의 회색 띠·화살표를 종이 색으로 덮어 흐리게, 가장자리에 옅은 얼룩 테
+  function drawWater({ x, y, r }) {
+    const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(236, 228, 208, 0.97)'); gr.addColorStop(0.75, 'rgba(236, 228, 208, 0.9)'); gr.addColorStop(1, 'rgba(236, 228, 208, 0)');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(150, 140, 120, 0.35)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.arc(x, y, r * 0.82, 0, 7); ctx.stroke();
+  }
   function drawMorph(g) {
     const m = sheet.morph, e = 1 - Math.pow(1 - m.t, 3);
     ctx.save(); ctx.shadowColor = 'rgba(255, 200, 80, 0.9)'; ctx.shadowBlur = 6 * g * Math.sin(Math.PI * m.t) + 0.5;
@@ -512,10 +556,12 @@
     Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: DAY_SEC + CLOCK_TOTAL[lv('clock')], running: true, busy: false, bonusTime: 0 });
     $('stack').innerHTML = ''; $('controls').style.visibility = '';
     show('game'); newSheet(); hud();
-    const t0 = performance.now(), total = S.timeLeft;
+    const t0 = performance.now(), total = S.timeLeft, hz = planHazards(total);
     clearInterval(timerId);
     timerId = setInterval(() => {
-      S.timeLeft = Math.max(0, total + (S.bonusTime || 0) - (performance.now() - t0) / 1000);
+      const el = performance.now() - t0;
+      for (const h of hz) if (!h.done && el >= h.at && S.running) { h.done = true; fireHazard(h.k); }
+      S.timeLeft = Math.max(0, total + (S.bonusTime || 0) - el / 1000);
       hud();
       if (S.timeLeft <= 0) endStage();
     }, 100);
