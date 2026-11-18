@@ -6,7 +6,7 @@
   // 필기구: 파손 확률 10%p씩 감소(사용자 확정, 고급연필 5%는 [임시], 깨지지 않은 연필 0%)
   const PRICES = [15, 25, 35, 70, 120, 300]; // 사용자 확정: 단단한 심 업그레이드로 해금하므로 조금 낮춤 [임시]
   const PENCILS = [0.40, 0.30, 0.20, 0.10, 0.05, 0].map((p, i) => ({ p, price: PRICES[i] }));
-  // 하루 일감 (사용자 확정): 몸값 2000냥을 모으면 풀려남. 하루 = 5분, 아침마다 일감을 하나 골라 할당량을 채움
+  // 하루 일감 (사용자 확정): 몸값 3000냥(빚)을 모으면 풀려남. 하루 = 3분, 아침마다 일감을 하나 골라 할당량을 채움
   // 일감은 차례로 해금: 바로 아래 일감을 이틀 성공하면 다음 일감이 열림. 어려운 일감일수록 장당 값이 높음
   const JOBS = [
     { tier: 'letter', quota: 33, pay: 2 },   // 1 한글 자음·모음 / 알파벳 하나
@@ -17,7 +17,7 @@
     { tier: 'sent1', quota: 7, pay: 50, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
     { tier: 'sent23', quota: 3, pay: 135, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
   ];
-  const OVER_BONUS = 1, DAY_SEC = 180, RANSOM = 2000, WINS_TO_UNLOCK = 2;
+  const OVER_BONUS = 1, DAY_SEC = 180, RANSOM = 3000, WINS_TO_UNLOCK = 2;
   const jobOpen = i => i === 0 || ((S.wins || [])[i - 1] || 0) >= WINS_TO_UNLOCK;
   const PASS = 80;
   const fmtMoney = n => String(Math.round(n * 100) / 100); // 보너스로 반 냥이 생길 수 있음 // 합격선 (사용자 확정)

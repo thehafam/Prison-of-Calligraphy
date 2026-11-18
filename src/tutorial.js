@@ -60,7 +60,7 @@
       await step(wait(3400)); $('eyes').classList.add('hidden');
       // 2. 상황 설명
       introduced = false;
-      for (const k of ['tu_1', 'tu_2', 'tu_intro', 'tu_3', 'tu_4', 'tu_5']) { if (k === 'tu_3') introduced = true; await step(say(k)); }
+      for (const k of ['tu_1', 'tu_2', 'tu_intro', 'tu_debt', 'tu_3', 'tu_4', 'tu_5']) { if (k === 'tu_3') introduced = true; await step(say(k)); }
       // 3. 따라 쓰기: 한글·영어 둘 다 맛보기 (언어는 게임 언어와 무관)
       const first = BASIC[Math.floor(Math.random() * BASIC.length)];
       await step(traceOne({ lang: first[0], key: first[1] }, 'tu_order'));
