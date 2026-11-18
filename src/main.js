@@ -88,7 +88,8 @@
       sheet.tpl.forEach((s, i) => { if (i !== next) arrow(s, i + 1, g, false); });
       arrow(sheet.tpl[next], next + 1, g, true);
     }
-    // 플레이어 글씨
+    // 플레이어 글씨 (보정 중이면 내 획이 원본 모양으로 반듯해지는 중간 모습 + 금빛)
+    if (sheet.morph) return drawMorph(g);
     ctx.strokeStyle = '#26221d'; ctx.lineWidth = 3.4 * g;
     for (const s of sheet.strokes) {
       if (s.length === 1) { ctx.fillStyle = '#26221d'; ctx.beginPath(); ctx.arc(s[0][0], s[0][1], 1.7 * g, 0, 7); ctx.fill(); }
@@ -383,11 +384,51 @@
     if (!sheet || !sheet.strokes.length || S.busy || flying) return;
     if (S.mode === 'tutorial') return T.onSubmit && T.onSubmit();
     if (!S.running) return;
+    // 글씨 보정 (사용자 확정): 좋은 연필은 일정 확률로 무조건 100점 — 내 글씨가 반듯해지는 애니메이션 뒤 더미로
+    if (S.hand !== null && Math.random() < PERFECT[S.hand]) return correct(() => { if (S.running) { toStack(); hud(); newSheet(); } });
     toStack(); hud(); newSheet();
+  }
+  const PERFECT = [0, 0, 0, 0.25, 0.5, 0.5]; // 제법 좋은 연필 25%, 고급연필 50% (사용자 확정), 깨지지 않은 연필 50% [임시]
+  const MORPH_MS = 550, MORPH_N = 40;
+  function samplesOf(st) { // 획 하나를 같은 간격의 점 MORPH_N개로
+    if (st.length < 2) return Array(MORPH_N).fill(st[0]);
+    const r = PC.resample(st, Math.max(0.05, PC.length(st) / (MORPH_N - 1)));
+    return Array.from({ length: MORPH_N }, (_, i) => r[Math.min(r.length - 1, Math.round(i * (r.length - 1) / (MORPH_N - 1)))]);
+  }
+  function correct(done) {
+    cur = null; S.busy = true;
+    const n = Math.max(sheet.strokes.length, sheet.tpl.length), sh = sheet;
+    const from = [], to = [], fade = [];
+    for (let i = 0; i < n; i++) {
+      const p = sh.strokes[i], q = sh.tpl[i];
+      from.push(samplesOf(p || q)); to.push(samplesOf(q || p));
+      fade.push(!q ? -1 : !p ? 1 : 0); // -1: 남는 내 획은 사라짐, 1: 안 쓴 원본 획은 나타남
+    }
+    sh.morph = { t: 0, from, to, fade };
+    const t0 = performance.now();
+    const step = now => {
+      if (sheet !== sh) return;
+      sh.morph.t = Math.min(1, (now - t0) / MORPH_MS); draw();
+      if (sh.morph.t < 1) return requestAnimationFrame(step);
+      sh.strokes = sh.tpl.map(s => s.slice()); sh.perfect = true; sh.morph = null; draw();
+      setTimeout(() => { S.busy = false; done(); }, 180);
+    };
+    sfxNoise(0.4, 2400, 5200, 0.25); // 사르륵
+    requestAnimationFrame(step);
+  }
+  function drawMorph(g) {
+    const m = sheet.morph, e = 1 - Math.pow(1 - m.t, 3);
+    ctx.save(); ctx.shadowColor = 'rgba(255, 200, 80, 0.9)'; ctx.shadowBlur = 6 * g * Math.sin(Math.PI * m.t) + 0.5;
+    ctx.strokeStyle = '#26221d'; ctx.lineWidth = 3.4 * g;
+    m.from.forEach((a, i) => {
+      ctx.globalAlpha = m.fade[i] < 0 ? 1 - e : m.fade[i] > 0 ? e : 1;
+      poly(a.map((p, k) => [p[0] + (m.to[i][k][0] - p[0]) * e, p[1] + (m.to[i][k][1] - p[1]) * e]));
+    });
+    ctx.restore();
   }
   function toStack() {
     const r = $('paperWrap').getBoundingClientRect(), i = S.stack.length;
-    S.stack.push({ tpl: sheet.tpl, strokes: sheet.strokes, g: sheet.g, base: sheet.base });
+    S.stack.push({ tpl: sheet.tpl, strokes: sheet.strokes, g: sheet.g, base: sheet.base, perfect: !!sheet.perfect });
     const img = new Image(); img.src = cv.toDataURL('image/jpeg', 0.7); img.className = 'sheet-mini';
     img.style.width = r.width + 'px'; img.style.height = r.height + 'px';
     img.style.transform = `translate(${r.left}px,${r.top}px)`;
@@ -410,7 +451,7 @@
   }
   // 정산: 더미의 종이를 채점해 80점 이상이면 기본금 + 완성도 보너스
   function settle() {
-    const scores = S.stack.map(x => PC.score(x.tpl, x.strokes, 7 * x.g));
+    const scores = S.stack.map(x => (x.perfect ? 100 : PC.score(x.tpl, x.strokes, 7 * x.g)));
     const pay = scores.map((v, i) => rewardOf(v, S.stack[i].base));
     S.passed = scores.filter(v => v >= PASS).length; S.earned = pay.reduce((a, b) => a + b, 0); S.money += S.earned;
     // 할당 초과 보너스 (사용자 확정): 할당을 넘겨 합격한 장마다 1냥 더
