@@ -9,13 +9,13 @@
   // 하루 일감 (사용자 확정): 몸값 2000냥을 모으면 풀려남. 하루 = 5분, 아침마다 일감을 하나 골라 할당량을 채움
   // 일감은 차례로 해금: 바로 아래 일감을 이틀 성공하면 다음 일감이 열림. 어려운 일감일수록 장당 값이 높음
   const JOBS = [
-    { tier: 'letter', quota: 30, pay: 2 },   // 1 한글 자음·모음 / 알파벳 하나
-    { tier: 'word1', quota: 20, pay: 4 },    // 2 받침 없는 한 글자 / 영어 3자 (사용자 확정: 40 → 35장)
-    { tier: 'syl3', quota: 15, pay: 8 },     // 3 받침 있는 한 글자 / 영어 4~5자
-    { tier: 'word3', quota: 10, pay: 16 },    // 4 받침 있는 두 음절 / 영어 6자
-    { tier: 'word5', quota: 7, pay: 30, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
-    { tier: 'sent1', quota: 5, pay: 50, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
-    { tier: 'sent23', quota: 2, pay: 135, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
+    { tier: 'letter', quota: 33, pay: 2 },   // 1 한글 자음·모음 / 알파벳 하나
+    { tier: 'word1', quota: 22, pay: 4 },    // 2 받침 없는 한 글자 / 영어 3자 (사용자 확정: 40 → 35장)
+    { tier: 'syl3', quota: 17, pay: 8 },     // 3 받침 있는 한 글자 / 영어 4~5자
+    { tier: 'word3', quota: 12, pay: 16 },    // 4 받침 있는 두 음절 / 영어 6자
+    { tier: 'word5', quota: 9, pay: 30, guide: false }, // 5 세 음절 이상 / 영어 7자 이상 (여기부터 화살표·번호 없음)
+    { tier: 'sent1', quota: 7, pay: 50, guide: false }, // 6 짧은 문장 (사용자 확정: 20 → 25냥)
+    { tier: 'sent23', quota: 3, pay: 135, guide: false }, // 7 제법 긴 문장 (사용자 확정: 25 → 60냥)
   ];
   const OVER_BONUS = 1, DAY_SEC = 180, RANSOM = 2000, WINS_TO_UNLOCK = 2;
   const jobOpen = i => i === 0 || ((S.wins || [])[i - 1] || 0) >= WINS_TO_UNLOCK;
