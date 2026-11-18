@@ -150,12 +150,14 @@
     cur = null; // 앞 종이에서 쥐고 있던 획이 새 종이로 넘어오지 않게 (넘어오면 새 종이의 잉크가 부풀어 연필이 곧바로 부러졌음)
     sheet = { lang, key, tpl, g, w, guide, chars, base: S.mode === 'stage' ? stageDef().pay : 1, strokes: [], ink: 0, breakAt: Infinity };
     // 물방울·기울어진 종이 (일하는 날에만)
-    const hj = S.mode === 'stage' ? (S.job || 0) : -1;
-    if (hj >= 0 && Math.random() < HAZ.water[hj]) {
+    const stageSheet = S.mode === 'stage';
+    if (stageSheet && S.next_water) {
+      S.next_water = false;
       const pts = tpl.flat(), p = pts[Math.floor(Math.random() * pts.length)];
       sheet.water = { x: p[0] + (Math.random() - 0.5) * 6, y: p[1] + (Math.random() - 0.5) * 6, r: (15 + Math.random() * 6) * Math.max(0.8, g) };
     }
-    sheet.tilt = hj >= 0 && Math.random() < HAZ.tilt[hj] ? (4 + Math.random() * 5) * (Math.random() < 0.5 ? -1 : 1) : 0;
+    sheet.tilt = stageSheet && S.next_tilt ? (4 + Math.random() * 5) * (Math.random() < 0.5 ? -1 : 1) : 0;
+    if (sheet.tilt) S.next_tilt = false;
     cv.style.transform = sheet.tilt ? `rotate(${sheet.tilt}deg)` : '';
     // 파손: 글자 수에 비례해 쓰는 도중 아무 순간에 (planBreaks, 튜토리얼은 정해 둔 장에서만)
     const len = tpl.reduce((a, s) => a + PC.length(s), 0);
@@ -209,8 +211,8 @@
     return [(x / H) * 100 + jx, (y / H) * 100 + jy];
   }
   // ---------- 방해 요소 (사용자 확정: 손떨림·촛불 깜빡임·물방울·비뚤게 놓인 종이) [임시: 빈도·세기] ----------
-  // 일감 번호(0~6)마다: 하루 손떨림·깜빡임 횟수, 종이마다 물방울·기울어짐 확률
-  const HAZ = { tremble: [0, 1, 1, 2, 2, 3, 3], flicker: [0, 0, 1, 1, 2, 2, 3], water: [0, .1, .15, .2, .25, .3, .35], tilt: [0, .1, .15, .2, .25, .3, .35] };
+  // 30초마다 한 번씩 각 방해가 일어날지 굴림 (사용자 확정). 일감 2부터 (사용자 확정). 물방울·기울어짐은 걸리면 다음 종이에
+  const HAZ_P = { tremble: 0.15, flicker: 0.10, water: 0.12, tilt: 0.12 }, HAZ_EVERY = 30, HAZ_FROM_JOB = 1;
   const TREMBLE_MS = 4000, FLICKER_MS = 3000;
   let trembleUntil = 0;
   function tremor() {
@@ -219,14 +221,15 @@
     const A = 1.6 * sheet.g, t = now / 1000;
     return [A * (Math.sin(t * 31) + Math.sin(t * 53)) / 2, A * (Math.sin(t * 37 + 1) + Math.sin(t * 47 + 2)) / 2];
   }
-  function planHazards(total) { // 하루 안에서 손떨림·깜빡임이 일어날 때 (시간의 10~85% 사이)
-    const j = S.job || 0, ev = [];
-    for (const [k, n] of [['tremble', HAZ.tremble[j]], ['flicker', HAZ.flicker[j]]]) for (let i = 0; i < n; i++) ev.push({ k, at: total * (0.1 + Math.random() * 0.75) * 1000 });
-    return ev;
+  function rollHazards() {
+    if ((S.job || 0) < HAZ_FROM_JOB) return;
+    for (const k of Object.keys(HAZ_P)) if (Math.random() < HAZ_P[k]) fireHazard(k);
   }
   function fireHazard(k) {
-    if (k === 'tremble') { trembleUntil = performance.now() + TREMBLE_MS; toast(t('hzTremble')); $('penCursor').classList.add('tremble'); setTimeout(() => $('penCursor').classList.remove('tremble'), TREMBLE_MS); }
-    else { const d = $('dark'); d.classList.remove('on'); void d.offsetWidth; d.classList.add('on'); setTimeout(() => d.classList.remove('on'), FLICKER_MS); }
+    toast(t('hz_' + k)); // 주인공 독백
+    if (k === 'tremble') trembleUntil = performance.now() + TREMBLE_MS;
+    else if (k === 'flicker') { const d = $('dark'); d.classList.remove('on'); void d.offsetWidth; d.classList.add('on'); setTimeout(() => d.classList.remove('on'), FLICKER_MS); }
+    else S['next_' + k] = true; // 물방울·기울어짐: 다음 종이에
   }
   cv.addEventListener('pointerdown', e => {
     if (!sheet || !canDraw()) return;
@@ -556,11 +559,12 @@
     Object.assign(S, { mode: 'stage', passed: 0, earned: 0, stack: [], timeLeft: DAY_SEC + CLOCK_TOTAL[lv('clock')], running: true, busy: false, bonusTime: 0 });
     $('stack').innerHTML = ''; $('controls').style.visibility = '';
     show('game'); newSheet(); hud();
-    const t0 = performance.now(), total = S.timeLeft, hz = planHazards(total);
+    const t0 = performance.now(), total = S.timeLeft;
+    let hzNext = HAZ_EVERY * 1000; S.next_water = S.next_tilt = false;
     clearInterval(timerId);
     timerId = setInterval(() => {
       const el = performance.now() - t0;
-      for (const h of hz) if (!h.done && el >= h.at && S.running) { h.done = true; fireHazard(h.k); }
+      if (el >= hzNext && S.running) { hzNext += HAZ_EVERY * 1000; rollHazards(); }
       S.timeLeft = Math.max(0, total + (S.bonusTime || 0) - el / 1000);
       hud();
       if (S.timeLeft <= 0) endStage();
