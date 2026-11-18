@@ -1,0 +1,16 @@
+{
+  "name": "prison-of-calligraphy",
+  "productName": "Prison of Calligraphy",
+  "version": "0.1.0",
+  "description": "Prison of Calligraphy (獄: 敎筆)",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:win": "sh tools/build_win.sh"
+  },
+  "devDependencies": {
+    "@electron/packager": "18.3.6",
+    "electron": "33.2.1"
+  }
+}
