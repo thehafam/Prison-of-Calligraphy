@@ -25,7 +25,7 @@
   const rewardOf = (score, base) => (score < PASS ? 0 : Math.round((base * (score >= 100 ? 1.2 : score >= 90 ? 1.15 : 1) + WORD_TOTAL[lv('word')]) * 100) / 100); // 장당 값 + 완성도(90점 +15%, 100점 +20%, 사용자 확정) + 좋은 말 // 장당 값 = 일감 값 + 완성도 + 좋은 말
   const CREDIT_BASE = 18;
   // 파손: 글자 수에 비례 — 글자 하나마다 등급 확률 × 1/4 (표의 확률 ≈ 4글자 한 장 기준). 한 장에 여러 번 부러질 수 있음 (최대 횟수 없음)
-  const BREAK_PER_CHAR = 1 / 15; // 사용자 확정 (예전 1/25)
+  const BREAK_PER_CHAR = 1 / 10; // 사용자 요청으로 더 잘 부러지게 (1/25 → 1/15 → 1/10)
   const ICONS = [0, 1, 2, 3, 4, 5].map(g => `assets/pencil_${g}.jpg`); // 연필 아이콘 (나머지 4종은 이미지 오면 추가)
   // 스킬 (상점 스킬 탭, 모두 최대 15레벨 — 사용자 확정, 레벨마다 가격이 오름) [임시: 효과·가격]
   const SKILLS = {
