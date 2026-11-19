@@ -149,10 +149,10 @@
     return { tpl, k, w };
   }
   // 글씨 크기는 언어마다 하나로 고정 (사용자 확정): 한글끼리·영어끼리 낱자든 단어든 같은 크기, 길면 종이만 늘어남
-  const EN_K = 0.75, KO_K = 0.6;
+  const EN_K = 0.75, KO_K = 0.6, ZH_K = 0.6; // 한자(번체)도 한 크기
   const SENT = 0.85; // 문장은 단어보다 조금 작게 (문장 단계 안에서는 늘 같은 크기)
   const DOT = { en: [[[50, 78], [50, 80.5]]], ko: [[[50, 84], [50, 86.5]]] }; // 마침표
-  const glyphOf = (lang, ch) => (ch === ' ' ? null : ch === '.' ? DOT[lang] : GLYPHS[lang][ch] || (lang === 'ko' && VOWELS[ch] && !/[가-힣]/.test(ch) ? VOWELS[ch].s : buildSyllable(ch))); // 모음 낱자는 모음 획 그대로
+  const glyphOf = (lang, ch) => (lang === 'zh' ? window.PC.HANZI[ch] : ch === ' ' ? null : ch === '.' ? DOT[lang] : GLYPHS[lang][ch] || (lang === 'ko' && VOWELS[ch] && !/[가-힣]/.test(ch) ? VOWELS[ch].s : buildSyllable(ch))); // 모음 낱자는 모음 획 그대로
   const isSentence = key => /[ .]/.test(key);
   const buildWord = w => buildRow([...w].map(ch => glyphOf('en', ch)), 12, 55, EN_K * (isSentence(w) ? SENT : 1));
   const buildKoWord = w => buildRow([...w].map(ch => glyphOf('ko', ch)), 10, 50, KO_K * (isSentence(w) ? SENT : 1)); // 낱자 자음은 음절 칸 그대로
@@ -169,6 +169,7 @@
     return { k, w, tpl: rows.flatMap(r => r.tpl.map(st => st.map(([x, y]) => [x + (w - r.w) / 2, y]))) };
   }
   function build(lang, key) {
+    if (lang === 'zh') return buildRow([...key].map(ch => glyphOf('zh', ch)), 8, 50, ZH_K);
     if (key.includes('\n')) return buildLines(lang, key);
     return lang === 'ko' ? buildKoWord(key) : buildWord(key);
   }
@@ -248,10 +249,22 @@
   };
   POOLS.syl3.en = POOLS.word2.en; POOLS.word5.en = POOLS.word4.en;
   POOLS.word5.ko = POOLS.word5.ko.filter(w => [...w].every(canBuild)); // 획 데이터로 만들 수 있는 단어만
-  POOLS.sent23 = { ko: [...POOLS.sent2.ko, ...POOLS.sent3.ko], en: [...POOLS.sent2.en, ...POOLS.sent3.en] }; // 일감 7: 긴 한 줄 + 두 줄 문장
-  // 한글·영어를 반반으로 고르고 그 안에서 무작위. 영어 단어는 3분의 1 확률로 첫 글자를 대문자로 (Sky)
+  // 한자(번체, 사용자 제공 8급 한자 42자): 일감마다 획 수·글자 수로 어려워짐, 문장 없음 — 두 글자 이상은 표준국어대사전에 있는 낱말만 (사용자 확정)
+  const ZH = {
+    letter: '一 二 三 七 八 九 十 人 大 小 女 土',                       // 3획 이하
+    word1: '四 五 六 月 火 水 木 父 日 中 兄 生 白 母 北 外',            // 4~5획
+    syl3: '先 年 西 弟 青 東 金 長',                                    // 6~8획
+    word3: '日月 大小 父母 兄弟 人生 一生 十月 五月 六月 土木 水火 大人 小人 女人 中年 長女 白人', // 쉬운 두 글자
+    word5: '東西 南北 先生 青年 學生 校長 母校 大學 學年 白金 年金 萬年 室外 室長 外人 中學 小學', // 획이 조금 많은 두 글자
+    sent1: '南 室 校 敎 萬 三兄弟 一年生 十一月 十二月',                 // 9~13획 한 글자 / 세 글자
+    sent23: '學 學校 敎室 敎學 學長 校長室 學父兄 大學生 女學生 中學生 小學生', // 16획 한 글자 / 획 많은 두세 글자
+  };
+  POOLS.sent23 = {};
+  for (const k in ZH) POOLS[k].zh = ZH[k].split(' ');
+  Object.assign(POOLS.sent23, { ko: [...POOLS.sent2.ko, ...POOLS.sent3.ko], en: [...POOLS.sent2.en, ...POOLS.sent3.en] }); // 일감 7: 긴 한 줄 + 두 줄 문장
+  // 한글·영어·한자를 3분의 1씩(사용자 확정, 한자가 없는 묶음은 반반) 고르고 그 안에서 무작위. 영어 단어는 3분의 1 확률로 첫 글자를 대문자로 (Sky)
   const pick = (tier = 'letter') => {
-    const P = POOLS[tier], lang = Math.random() < 0.5 ? 'ko' : 'en', list = P[lang];
+    const P = POOLS[tier], langs = ['ko', 'en', 'zh'].filter(l => P[l]), lang = langs[Math.floor(Math.random() * langs.length)], list = P[lang];
     let key = list[Math.floor(Math.random() * list.length)];
     if (lang === 'en' && (tier.startsWith('word') || tier === 'syl3') && Math.random() < 1 / 3) key = key[0].toUpperCase() + key.slice(1);
     return [lang, key];
