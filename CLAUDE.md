@@ -157,6 +157,7 @@
 - 웹 기술(HTML/JS Canvas)로 만들고 **Electron**으로 감싸 Steam 배포 (사용자 결정, Steamworks 연동은 출시 단계에서)
   - `electron/main.js`(창 1280×720·최소 960×540, 메뉴 없음, F11 전체 화면) · `package.json`(electron 33.2.1, @electron/packager 18.3.6)
   - 윈도우 묶음: 처음 한 번 `npm install` → `sh tools/build_win.sh` → `dist/PrisonOfCalligraphy-win64.zip` (압축 풀고 'Prison of Calligraphy.exe', 아이콘·코드 서명은 아직 없음)
+  - itch.io용: `sh tools/build_itch.sh` → `dist/prison-of-calligraphy-itch.zip` (zip 최상위에 index.html — itch.io 'HTML' 프로젝트로 올림, 저장은 브라우저 localStorage)
   - 저장은 Electron 안의 localStorage(사용자 폴더 %APPDATA%\Prison of Calligraphy에 남음) — Steam 클라우드는 그 폴더를 지정하면 됨
 
 ## 코드 구조 (시제품)
