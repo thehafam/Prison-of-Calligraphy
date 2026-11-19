@@ -28,6 +28,27 @@ KO_LEMMA = {
     '눈이': '눈', '내린다': '내리다', '세상이': '세상', '꿈을': '꿈', '꾼다': '꾸다',
 }
 
+# 한자 낱말(두 글자 이상) → 한글 읽기. 사전에서 읽기로 찾아 표제어 옆 (漢字)가 같은지 봄 — 낱말을 새로 넣으면 여기에도 추가할 것
+ZH_POOLS = ['word3', 'word5', 'sent1', 'sent23']
+ZH_READ = {
+    '日月': '일월', '大小': '대소', '父母': '부모', '兄弟': '형제', '人生': '인생', '一生': '일생', '十月': '시월', '五月': '오월', '六月': '유월',
+    '土木': '토목', '水火': '수화', '大人': '대인', '小人': '소인', '女人': '여인', '中年': '중년', '長女': '장녀', '白人': '백인', '山水': '산수',
+    '人口': '인구', '人工': '인공', '女王': '여왕', '木工': '목공', '生日': '생일',
+    '東西': '동서', '南北': '남북', '先生': '선생', '青年': '청년', '校長': '교장', '母校': '모교', '白金': '백금', '年金': '연금', '室外': '실외',
+    '室長': '실장', '外人': '외인', '家門': '가문', '江山': '강산', '空軍': '공군', '名門': '명문', '每年': '매년', '每日': '매일', '人物': '인물',
+    '動物': '동물', '男女': '남녀', '車道': '차도', '記事': '기사', '長男': '장남', '國民': '국민', '國軍': '국군', '國家': '국가', '高校': '고교',
+    '軍人': '군인', '王室': '왕실', '家事': '가사', '人事': '인사', '不老': '불로', '方面': '방면', '外面': '외면',
+    '三兄弟': '삼형제', '一年生': '일년생', '十一月': '십일월', '十二月': '십이월', '外三寸': '외삼촌',
+    '學校': '학교', '敎室': '교실', '敎學': '교학', '學長': '학장', '學生': '학생', '大學': '대학', '學年': '학년', '中學': '중학', '小學': '소학',
+    '萬年': '만년', '萬人': '만인', '農民': '농민', '農家': '농가', '農事': '농사', '韓國': '한국', '南韓': '남한', '北韓': '북한',
+    '校長室': '교장실', '大學生': '대학생',
+}
+ZH_FORM = {'青': '靑'}  # 사전은 한국 한자 자형으로 적음
+
+def zh_ok(w):
+    _, html = get('https://stdict.korean.go.kr/search/searchResult.do?searchKeyword=' + urllib.parse.quote(ZH_READ[w]))
+    return '(' + ''.join(ZH_FORM.get(c, c) for c in w) in html
+
 def pools():
     js = ("global.window={};require(process.argv[1]);console.log(JSON.stringify(window.PC.POOLS))")
     return json.loads(subprocess.check_output(['node', '-e', js, os.path.join(ROOT, 'src', 'glyphs.js')]))
@@ -59,8 +80,11 @@ def main():
                 else: missing_lemma.append(tok)
         for s in P[k]['en']:
             en.update(t.lower() for t in re.findall(r"[A-Za-z']+", s))
+    zh = sorted({w for k in ZH_POOLS for w in P[k].get('zh', []) if len(w) > 1})
+    missing_lemma += [w for w in zh if w not in ZH_READ]
+    zh = [w for w in zh if w in ZH_READ]
     bad = []
-    for lang, words, fn in (('ko', sorted(ko), ko_ok), ('en', sorted(en), en_ok)):
+    for lang, words, fn in (('ko', sorted(ko), ko_ok), ('en', sorted(en), en_ok), ('zh', zh, zh_ok)):
         for w in words:
             key = lang + ':' + w
             if key not in cache:
@@ -69,7 +93,7 @@ def main():
                 time.sleep(0.3)
             if not cache[key]: bad.append(key)
     json.dump(cache, open(CACHE, 'w'), ensure_ascii=False, indent=0)
-    print('checked', len(ko), 'ko /', len(en), 'en')
+    print('checked', len(ko), 'ko /', len(en), 'en /', len(zh), 'zh')
     if missing_lemma: print('NO LEMMA (KO_LEMMA에 추가):', ' '.join(sorted(set(missing_lemma))))
     print('NOT FOUND:', ' '.join(bad) if bad else 'none')
     sys.exit(1 if bad or missing_lemma else 0)

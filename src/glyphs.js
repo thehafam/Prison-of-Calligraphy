@@ -150,6 +150,7 @@
   }
   // 글씨 크기는 언어마다 하나로 고정 (사용자 확정): 한글끼리·영어끼리 낱자든 단어든 같은 크기, 길면 종이만 늘어남
   const EN_K = 0.75, KO_K = 0.6, ZH_K = 0.6; // 한자(번체)도 한 크기
+  const ZH_BIG = 9, ZH_K_BIG = 0.85; // 획이 많은 한자(9획 이상)는 한 글자로 크게 (사용자 확정)
   const SENT = 0.85; // 문장은 단어보다 조금 작게 (문장 단계 안에서는 늘 같은 크기)
   const DOT = { en: [[[50, 78], [50, 80.5]]], ko: [[[50, 84], [50, 86.5]]] }; // 마침표
   const glyphOf = (lang, ch) => (lang === 'zh' ? window.PC.HANZI[ch] : ch === ' ' ? null : ch === '.' ? DOT[lang] : GLYPHS[lang][ch] || (lang === 'ko' && VOWELS[ch] && !/[가-힣]/.test(ch) ? VOWELS[ch].s : buildSyllable(ch))); // 모음 낱자는 모음 획 그대로
@@ -169,7 +170,7 @@
     return { k, w, tpl: rows.flatMap(r => r.tpl.map(st => st.map(([x, y]) => [x + (w - r.w) / 2, y]))) };
   }
   function build(lang, key) {
-    if (lang === 'zh') return buildRow([...key].map(ch => glyphOf('zh', ch)), 8, 50, ZH_K);
+    if (lang === 'zh') return buildRow([...key].map(ch => glyphOf('zh', ch)), 8, 50, key.length === 1 && glyphOf('zh', key).length >= ZH_BIG ? ZH_K_BIG : ZH_K);
     if (key.includes('\n')) return buildLines(lang, key);
     return lang === 'ko' ? buildKoWord(key) : buildWord(key);
   }
@@ -251,13 +252,13 @@
   POOLS.word5.ko = POOLS.word5.ko.filter(w => [...w].every(canBuild)); // 획 데이터로 만들 수 있는 단어만
   // 한자(번체, 사용자 제공 8급 한자 42자): 일감마다 획 수·글자 수로 어려워짐, 문장 없음 — 두 글자 이상은 표준국어대사전에 있는 낱말만 (사용자 확정)
   const ZH = {
-    letter: '一 二 三 七 八 九 十 人 大 小 女 土',                       // 3획 이하
-    word1: '四 五 六 月 火 水 木 父 日 中 兄 生 白 母 北 外',            // 4~5획
-    syl3: '先 年 西 弟 青 東 金 長',                                    // 6~8획
-    word3: '日月 大小 父母 兄弟 人生 一生 十月 五月 六月 土木 水火 大人 小人 女人 中年 長女 白人', // 쉬운 두 글자
-    word5: '東西 南北 先生 青年 學生 校長 母校 大學 學年 白金 年金 萬年 室外 室長 外人 中學 小學', // 획이 조금 많은 두 글자
-    sent1: '南 室 校 敎 萬 三兄弟 一年生 十一月 十二月',                 // 9~13획 한 글자 / 세 글자
-    sent23: '學 學校 敎室 敎學 學長 校長室 學父兄 大學生 女學生 中學生 小學生', // 16획 한 글자 / 획 많은 두세 글자
+    letter: '一 二 三 七 八 九 十 人 大 小 女 土 山 寸 工 口 力 上',                     // 3획 이하
+    word1: '四 五 六 月 火 水 木 父 日 中 王 內 方 不 兄 生 白 母 北 外 民 立',        // 4~5획
+    syl3: '先 年 西 弟 青 東 金 長 老 交 江 名 姓 空 果 男 每 物 車 事',              // 6~8획
+    word3: '日月 大小 父母 兄弟 人生 一生 十月 五月 六月 土木 水火 大人 小人 女人 中年 長女 白人 山水 人口 人工 女王 木工 生日', // 쉬운 두 글자
+    word5: '東西 南北 先生 青年 校長 母校 白金 年金 室外 室長 外人 家門 江山 空軍 名門 每年 每日 人物 動物 男女 車道 記事 長男 國民 國軍 國家 高校 軍人 王室 家事 人事 不老 方面 外面', // 획이 조금 많은 두 글자
+    sent1: '南 室 校 敎 軍 高 家 馬 面 記 氣 間 動 答 道 三兄弟 一年生 十一月 十二月 外三寸', // 9~12획 한 글자(크게) / 획 적은 세 글자
+    sent23: '學 萬 農 韓 學校 敎室 敎學 學長 學生 大學 學年 中學 小學 萬年 萬人 農民 農家 農事 韓國 南韓 北韓 校長室 大學生', // 13획 이상 한 글자(크게) / 획 많은 두세 글자
   };
   POOLS.sent23 = {};
   for (const k in ZH) POOLS[k].zh = ZH[k].split(' ');
